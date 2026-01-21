@@ -1,4 +1,5 @@
 node_modules/
+__private__/
 /logs/
 /databases-dumps/
 /database-dumps/

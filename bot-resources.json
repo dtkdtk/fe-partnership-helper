@@ -1,0 +1,44 @@
+{
+  "colors": {
+    "default": "#850303",
+    "gray": "#595a63",
+    "delegation": "#a27d8b",
+    "error": "#000000"
+  },
+  "images": {
+    "briefcase": "https://cdn.discordapp.com/attachments/1181937337874259968/1188792201501741087/Delegate.png",
+    "info": "https://cdn.discordapp.com/attachments/1181937337874259968/1181937493290004570/Info.png",
+    "yes": "https://cdn.discordapp.com/attachments/1235673660606386206/1235680230887395338/Yes.png",
+    "no": "https://media.discordapp.net/attachments/1181937337874259968/1181937494724456529/No.png",
+    "time": "https://cdn.discordapp.com/attachments/1181937337874259968/1181937535887364138/Time.png",
+    "list": "https://cdn.discordapp.com/attachments/1181937337874259968/1181937493776547941/List.png",
+    "statistics": "https://cdn.discordapp.com/attachments/1235673660606386206/1235680304014954606/Statistics.png"
+  },
+  "emoji": {
+    "briefcase": ":briefcase:",
+    "calendar": ":date:",
+    "warning": ":warning:",
+    "yes": ":white_check_mark:",
+    "no": ":x:",
+    "system": ":tools:",
+    "link": ":link:",
+    "member": ":bust_in_silhouette:"
+  },
+  "button_icons": {
+    "calendar": "📆",
+    "yes": "✅",
+    "no": "❌",
+    "warning": "⚠",
+    "link": "🔗"
+  },
+  "default_footer": {
+    "delete1h": "『FE』• Данное сообщение удалится через час",
+    "deleteP1m": "『FE』• Данное сообщение и текст партнёрства удалятся через минуту",
+    "text": "『FE』• Partnership Helper • github.com/dtkdtk/fe-partnership-helper ⭐",
+    "image": "https://cdn.discordapp.com/attachments/1235673660606386206/1235679825252061194/Code.png"
+  },
+  "text_fragments": {
+    "partnerAlert_thanks": "Благодарим вас за успешное партнёрство." ,
+    "partnerAlert_tomorrowRemind": "Приходите завтра чтобы обновить партнёрство."
+  }
+}

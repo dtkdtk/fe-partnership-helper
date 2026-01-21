@@ -1,0 +1,11 @@
+{
+    "editor.tabSize": 2,
+    "typescript.tsdk": "node_modules\\typescript\\lib",
+    "cSpell.words": [
+        "corelib",
+        "getconfig",
+        "sharedlib",
+        "shlib",
+        "unfetched"
+    ]
+}

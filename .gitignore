@@ -1,0 +1,14 @@
+node_modules/
+/logs/
+/databases-dumps/
+/database-dumps/
+/databases/
+/database/
+/baked-bot.zip
+dist/
+vault.json
+package-lock.json
+.env
+/sharedlib-metadata.json
+/sharedlib/_shlib-cli.mjs
+/sharedlib/_shlib-cli.d.mts

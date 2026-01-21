@@ -1,0 +1,40 @@
+{
+  "exclude": [
+    "./vault.json",
+    "./dist/",
+    "./node_modules/",
+    "./logs/",
+    "./index.js",
+    "./structures/*.*",
+    "./test/**/*",
+    "./benchmarks/**/*",
+    "./globals.js",
+
+    "./src/commands/economy_OLD/**",
+    "./sharedlib/"
+  ],
+  "include": [
+    "./src/"
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "outDir": "dist",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "sourceMap": false,
+    "allowJs": true,
+    "declaration": false,
+    "declarationMap": false,
+    "pretty": true,
+    "importHelpers": true,
+    "skipLibCheck": false,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "lib": ["ESNext", "ESNext.Disposable", "DOM"],
+  }
+}

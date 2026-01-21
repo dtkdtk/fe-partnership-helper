@@ -7,7 +7,9 @@ export default {
   async run(ctx) {
     if (!checkPermission(ctx.member, DgPermissions.admin))
       return noAccess(ctx);
-    const sizeKB = Math.round(
+    const memUsageShot = process.memoryUsage();
+    const memUsageMB = Math.round(memUsageShot.rss / 1024**2);
+    const ccSizeKB = Math.round(
       (BotCache.stats.ksize + BotCache.stats.vsize) / 1024
     );
     const startedAt = BotCache.get("bot_startedAt") as number | null;
@@ -15,7 +17,8 @@ export default {
       ? `<t:${Math.floor(startedAt / 1000)}:R>` : "???";
     ctx
       .reply(
-`Кэш бота (\`BotCache\`): ${BotCache.stats.keys}, примерно на ${sizeKB} КБ.
+`ОЗУ: \`${memUsageMB}\` МБ.
+Кэш бота (\`BotCache\`): ${BotCache.stats.keys}, примерно на ${ccSizeKB} КБ.
 Кэши менеджеров DiscordJS:
 > \`client.guilds\`: ${ctx.client.guilds.cache.size}
 > \`client.users\`: ${ctx.client.users.cache.size}

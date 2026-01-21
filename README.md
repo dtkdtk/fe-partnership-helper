@@ -22,7 +22,7 @@
 
 Если вам пригодился этот код, и он сделал ваш сервер лучше, — пожалуйста, поставьте ⭐ звёздочку этому репозиторию, если у вас есть аккаунт в GitHub.
 
-![Мини-демо](./assets/FE_Partnership_Helper_DEMO.webm "Мини-демо")
+[FE_Partnership_Helper_DEMO.webm](https://github.com/user-attachments/assets/b4e373cf-08a8-4f45-946f-22419f756085)
 
 
 # Базовая настройка бота

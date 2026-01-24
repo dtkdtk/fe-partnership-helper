@@ -17,4 +17,9 @@ export class TimedQueue<T = unknown> {
     this.timer = undefined;
     this.executor?.(this.queue);
   }
+
+  restart() {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.drain(), this.timeoutMs);
+  }
 }

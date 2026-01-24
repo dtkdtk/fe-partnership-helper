@@ -21,6 +21,7 @@ export namespace PartnerAlerts {
     }
     handle.queue = Q;
     PartnershipAlertsQueue.set(handle.partner.id, handle);
+    return handle;
   }
 
   export namespace NewPartnership {
@@ -29,9 +30,10 @@ export namespace PartnerAlerts {
       delegate: GuildMember,
       guildName: string
     ) {
-      const maybeHandle = PartnershipAlertsQueue.get(partner.id);
-      if (maybeHandle) maybeHandle.queue.add(guildName);
-      else _initQueue({ partner, delegate });
+      const handle = PartnershipAlertsQueue.get(partner.id)
+        ?? _initQueue({ partner, delegate });
+      handle.queue.add(guildName);
+      handle.queue.restart();
     }
 
     export async function _sendAlert(

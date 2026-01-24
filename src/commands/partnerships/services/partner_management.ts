@@ -7,6 +7,14 @@ import { ServerData } from "../types.js";
 import { PartnerAlerts } from "./alerts.js";
 
 
+const NEW_PARTNERS_CACHE_DURATION = 30 * 60 * 1000; //30 минут
+
+const NewPartnersCache = new Set<string>();
+function cacheNewPartner(userId: string) {
+  NewPartnersCache.add(userId);
+  setTimeout(() => NewPartnersCache.delete(userId), NEW_PARTNERS_CACHE_DURATION);
+}
+
 export async function registerPartner(
   partnerId: string,
   partnerUsername: string,
@@ -102,9 +110,12 @@ async function _resolvePartner(
   const prevPartnerID = lastDatedVal(serverData.partners);
   registerPartner(partner.id, partner.user.username, delegate.id, serverData);
   
-  if (!isAlreadyPartner) PartnerAlerts.NewPartnership.queueAlert(
-    partner.user, delegate, serverData.last_name
-  );
+  if (!isAlreadyPartner || NewPartnersCache.has(partner.id)) {
+    PartnerAlerts.NewPartnership.queueAlert(
+      partner.user, delegate, serverData.last_name
+    );
+    cacheNewPartner(partner.id);
+  }
 
   if (prevPartnerID) {
     const isActual = await isActualPartner(prevPartnerID);

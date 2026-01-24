@@ -1,6 +1,6 @@
 import { eds } from "@eds-fw/framework";
 import { Invite, Message } from "discord.js";
-import { BotCache, checkPermission, ConfigEnv, DgPermissions, MessageInvites } from "../../../corelib.js";
+import { BotCache, ConfigEnv, MessageInvites } from "../../../corelib.js";
 import { decrementDelegateStats, getDelegateStats } from "../models/delegate_stats.js";
 import { getServerData, updateServerData_byInvite } from "../models/server.js";
 import { validateConditions } from "./check_conditions.js";
@@ -35,7 +35,6 @@ export async function onPartnershipDelete(message: Message<true>) {
     return;
   }
   if (message.channel.id != ConfigEnv.PARTNERSHIPS_CHANNEL_ID) return;
-  if (!checkPermission(message.member, DgPermissions.postPartnerships)) return;
   if (message.author.bot) return;
 
   const invite = await validateConditions(message, true);

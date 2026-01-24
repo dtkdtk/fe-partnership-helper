@@ -3,6 +3,7 @@ __private__/
 /logs/
 /databases-dumps/
 /database-dumps/
+/database_dump/
 /databases/
 /database/
 /baked-bot.zip

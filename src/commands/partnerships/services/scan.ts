@@ -70,6 +70,6 @@ export async function scanPartnershipChannel(client: Client) {
 
 function deferReaction(message: Message) {
   ReactionsQueue.push(async () => {
-    await message.react(resources.button_icons.yes);
+    await message.react(resources.button_icons.yes).catch(console.error);
   });
 }

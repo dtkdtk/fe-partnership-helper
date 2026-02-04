@@ -2,7 +2,7 @@ import eds from "@eds-fw/framework";
 import { ComponentType, SelectMenuDefaultValueType } from "discord.js";
 import { BotCache, checkPermission, ConfigEnv, DgPermissions, getDate, lastDatedVal, MessageInvites, MSK, noAccess, resources } from "../../corelib.js";
 import { getDelegateStats, incrementDelegateStats, initDelegateStats } from "./models/delegate_stats.js";
-import { getServerData, initServerData_byInvite, updateServerData_byInvite } from "./models/server.js";
+import { getServerData, initServerData_byInvite, markAsLatest, updateServerData_byInvite } from "./models/server.js";
 import { DelegateAlerts } from "./services/alerts.js";
 import { ConditionErrNames, ConditionErrno, validateConditions } from "./services/check_conditions.js";
 import { clearOldPartnerships } from "./services/handle_delete.js";
@@ -40,6 +40,7 @@ export default {
         , previousPartner = prevPartnerID
             ? (await eds.sfMember(ctx, prevPartnerID) ?? null) : null;
     updateServerData_byInvite(serverData, invite, ctx.user.id, ctx.createdTimestamp);
+    markAsLatest(ctx.id);
     const delegateStats = (
       await getDelegateStats(ctx.user.id) ?? await initDelegateStats(ctx.user.id),
       await incrementDelegateStats(ctx.user.id, +MSK())

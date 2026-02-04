@@ -1,11 +1,12 @@
 import eds from "@eds-fw/framework";
 import { Client, Invite, Message } from "discord.js";
-import { ConfigEnv, resources } from "../../../corelib.js";
+import { ConfigEnv, MSK, resources } from "../../../corelib.js";
 import { DB_Misc, MessageInvites } from "../../../databases.js";
 import { incrementDelegateStats } from "../models/delegate_stats.js";
-import { getServerData, initServerData_byInvite, updateServerData_byInvite } from "../models/server.js";
+import { getServerData, initServerData_byInvite, markAsLatest, updateServerData_byInvite } from "../models/server.js";
 import { DelegateAlerts } from "./alerts.js";
 import { ConditionErrno, validateConditions } from "./check_conditions.js";
+import { runFirstScan } from "./firstscan.js";
 
 
 const ReactionsQueue = new eds.ActionQueue(3_000);
@@ -18,54 +19,69 @@ export async function scanPartnershipChannel(client: Client) {
   );
   if (!channel?.isTextBased()) return;
 
-  let lastScannedMessageId = (await DB_Misc.findOneAsync({ _id: "1" })).last_scanned_message;
+  const _miscDbData = await DB_Misc.findOneAsync({ _id: "1" });
+  let lastScannedMessageId = _miscDbData.last_scanned_message;
   let lastScanTimestamp = (await eds.sfMessage(channel.messages, lastScannedMessageId))?.createdTimestamp ?? 0;
-  let scanningOld = false;
+  const scannedBefore = !!lastScannedMessageId && !!lastScanTimestamp;
+  const notificationWatermark = MSK().date(-3); //за последние 3 дня
+  if (!lastScannedMessageId && !lastScanTimestamp) return;
 
-  const messages = await channel.messages.fetch({ limit: 100, cache: false }).catch(() => {});
-  if (!messages?.size) return;
+  const performScan = async function() {
+    const messages = await channel.messages.fetch({ limit: 100, cache: false, after: lastScannedMessageId }).catch(() => {});
+    if (!messages?.size) return false;
+    messages.sort((A, B) => B.createdTimestamp - A.createdTimestamp); //Начинаем с новых
 
-  for (const message of messages.values()) {
-    if (message.author.bot) {
-      await message.delete().catch(() => {});
-      continue;
-    }
-    if (message.id == lastScannedMessageId) scanningOld = true;
-    const invite = await validateConditions(message, false, false);
-
-    if (invite === ConditionErrno.just_return) continue;
-    else if (typeof invite === "number") {
-      await message.delete().catch(() => {});
-      if (!scanningOld)
-        DelegateAlerts.deletePartnership(message, invite, true);
-      continue;
-    }
-    else if (invite instanceof Invite && invite.guild) {
-      if (CheckedGuilds.has(invite.guild.id)) {
-        await message.delete().catch(() => {});
+    //Коллекция начинается с самых новых сообщений
+    for (const msg of messages.values()) {
+      if (msg.author.bot) {
+        await msg.delete().catch(() => {});
         continue;
       }
-      MessageInvites.set(message.id, invite.guild.id);
-      CheckedGuilds.add(invite.guild.id);
-      const serverData = await getServerData(invite.guild.id)
-        ?? await initServerData_byInvite(invite);
-      
-      updateServerData_byInvite(
-        serverData!,
-        invite,
-        message.author.id,
-        message.createdTimestamp
-      );
-      if (message.createdTimestamp > lastScanTimestamp) {
-        lastScannedMessageId = message.id;
-        lastScanTimestamp = message.createdTimestamp;
+      if (msg.id == lastScannedMessageId) return false;
+      const invite = await validateConditions(msg, false, false);
+
+      if (invite === ConditionErrno.just_return) continue;
+      else if (typeof invite === "number") {
+        await msg.delete().catch(() => {});
+        if (scannedBefore && проверить watermark)
+          DelegateAlerts.deletePartnership(msg, invite, true);
+        continue;
       }
-      deferReaction(message);
-      incrementDelegateStats(message.author.id, message.createdTimestamp);
+      else if (invite instanceof Invite && invite.guild) {
+        if (CheckedGuilds.has(invite.guild.id)) {
+          await msg.delete().catch(() => {});
+          continue;
+        }
+        MessageInvites.set(msg.id, invite.guild.id);
+        CheckedGuilds.add(invite.guild.id);
+        const serverData = await getServerData(invite.guild.id)
+          ?? await initServerData_byInvite(invite);
+
+        updateServerData_byInvite(
+          serverData!,
+          invite,
+          msg.author.id,
+          msg.createdTimestamp
+        );
+        if (msg.createdTimestamp > lastScanTimestamp) {
+          lastScannedMessageId = msg.id;
+          lastScanTimestamp = msg.createdTimestamp;
+        }
+        deferReaction(msg);
+        incrementDelegateStats(msg.author.id, msg.createdTimestamp);
+      }
     }
+    return true;
   }
 
-  await DB_Misc.updateAsync({ _id: "1" }, { $set: { last_scanned_message: lastScannedMessageId } })
+  let toContinue = true;
+  while (toContinue) {
+    toContinue = await performScan();
+    await eds.wait(3_000);
+  }
+
+  if (lastScannedMessageId) markAsLatest(lastScannedMessageId);
+  runFirstScan(client);
 }
 
 function deferReaction(message: Message) {

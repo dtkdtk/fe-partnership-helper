@@ -15,6 +15,7 @@ type ConfigEnvProperties = Record<
   REQUIREMENT_MINIMAL_MEMBERS: number;
   REQUIREMENT_ONCE_PER_DAY: boolean;
   DELETE_OLD_TEXTS: boolean;
+  FIRSTSCAN_DELETE_UNFETCHED: boolean;
   PARTNER_ALERTS_BATCH_DURATION: number;
   TIMEZONE_UTC_OFFSET: number;
   ADMIN_ID_LIST: string[];

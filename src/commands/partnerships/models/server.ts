@@ -1,6 +1,6 @@
 import { Invite } from "discord.js";
 import { updateDatedVal } from "../../../corelib.js";
-import { DB_ServersData } from "../../../databases.js";
+import { DB_Misc, DB_ServersData } from "../../../databases.js";
 import { ServerData } from "../types.js";
 
 
@@ -56,4 +56,8 @@ export function updateServerData_byInvite(
   return updateServerData(oldData, invite.guild.name,
     invite.memberCount ?? 0, delegateId, timestamp
   );
+}
+
+export function markAsLatest(messageId: string) {
+  return DB_Misc.update({ _id: "1" }, { $set: { last_scanned_message: messageId } });
 }

@@ -55,6 +55,9 @@ function _getValidEnv() {
   env.DELETE_OLD_TEXTS = "DELETE_OLD_TEXTS" in env
     ? _strictCast.boolean(env.DELETE_OLD_TEXTS)
     : true;
+  env.FIRSTSCAN_DELETE_UNFETCHED = "FIRSTSCAN_DELETE_UNFETCHED" in env
+    ? _strictCast.boolean(env.FIRSTSCAN_DELETE_UNFETCHED)
+    : false;
   env.PARTNER_ALERTS_BATCH_DURATION = "PARTNER_ALERTS_BATCH_DURATION" in env
     ? _strictCast.integer(env.PARTNER_ALERTS_BATCH_DURATION)
     : 60;

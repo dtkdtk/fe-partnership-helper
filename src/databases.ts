@@ -7,6 +7,8 @@ const Datastore = nedb.default as unknown as typeof nedb.default.default;
 interface MiscDbData {
   _id: "1";
   last_scanned_message?: string;
+  last_firstscan_message?: string;
+  is_firstscan_complete?: boolean;
 }
 
 export const DB_DelegationStats = new Datastore<DelegateStats>({
@@ -44,3 +46,5 @@ export const BotCache = new NodeCache({ stdTTL: 3 * 24 * 60 * 60 });
 export const MessageInvites = new Collection<string, string>();
 
 BotCache.set("bot_startedAt", Date.now());
+
+//cSpell:words seald

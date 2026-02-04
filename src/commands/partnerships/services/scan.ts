@@ -1,6 +1,6 @@
 import eds from "@eds-fw/framework";
 import { Client, Invite, Message } from "discord.js";
-import { ConfigEnv, MSK, resources } from "../../../corelib.js";
+import { ConfigEnv, logger, MSK, resources } from "../../../corelib.js";
 import { DB_Misc, MessageInvites } from "../../../databases.js";
 import { incrementDelegateStats } from "../models/delegate_stats.js";
 import { getServerData, initServerData_byInvite, markAsLatest, updateServerData_byInvite } from "../models/server.js";

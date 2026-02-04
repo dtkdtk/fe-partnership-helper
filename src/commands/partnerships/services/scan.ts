@@ -43,7 +43,7 @@ export async function scanPartnershipChannel(client: Client) {
       if (invite === ConditionErrno.just_return) continue;
       else if (typeof invite === "number") {
         await msg.delete().catch(() => {});
-        if (scannedBefore && проверить watermark)
+        if (scannedBefore && MSK(msg.createdTimestamp).isAfter(notificationWatermark))
           DelegateAlerts.deletePartnership(msg, invite, true);
         continue;
       }

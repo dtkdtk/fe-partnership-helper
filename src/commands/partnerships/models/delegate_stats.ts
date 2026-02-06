@@ -1,7 +1,13 @@
 import { DateRecord, getDate, MSK } from "../../../corelib.js";
-import { DB_DelegationStats } from "../../../databases.js";
+import { DB_DelegationStats, type OmitId } from "../../../databases.js";
 import { DelegateStats } from "../types.js";
 
+
+const defaultDelegateStats = (userId: string) => ({
+  _id: userId,
+  activity: {},
+  total_partnerships: 0
+});
 
 export async function initDelegateStats(userId: string) {
   await DB_DelegationStats.insertAsync({
@@ -37,13 +43,19 @@ export async function decrementDelegateStats(userId: string, partnershipTimestam
 
 export async function bulkUpdateDgStats(
   userId: string, datedDiff: DateRecord<number>
-): Promise<DelegateStats | null> {
-  const stats = await DB_DelegationStats.findOneAsync({ _id: userId });
-  if (stats === null) return null;
+): Promise<DelegateStats> {
+  let applyFn: (stats: OmitId<DelegateStats>) => Promise<unknown>;
+  let stats = await DB_DelegationStats.findOneAsync({ _id: userId });
+  if (stats === null)
+    applyFn = (stats) => DB_DelegationStats.insertAsync({ _id: userId, ...stats });
+  else
+    applyFn = (stats) => DB_DelegationStats.updateAsync({ _id: userId }, stats);
+  stats ??= defaultDelegateStats(userId);
+
   for (const [date, count] of Object.entries(datedDiff)) {
     stats.activity[date] = (stats.activity[date] ?? 0) + count;
     stats.total_partnerships += count;
   }
-  await DB_DelegationStats.updateAsync({ _id: userId }, stats);
+  await applyFn(stats);
   return stats;
 }

@@ -46,6 +46,7 @@ function _getValidEnv() {
       : env.BOT_TEXT_PREFIX;
   env.BotVersion = BotVersion;
   env.PARTNER_ROLE_ID = env.PARTNER_ROLE_ID || undefined;
+  env.LOG_LEVEL = env.LOG_LEVEL ? env.LOG_LEVEL.toLowerCase() : "info";
   env.REQUIREMENT_MINIMAL_MEMBERS = "REQUIREMENT_MINIMAL_MEMBERS" in env
     ? _strictCast.integer(env.REQUIREMENT_MINIMAL_MEMBERS)
     : 0;
@@ -55,8 +56,8 @@ function _getValidEnv() {
   env.DELETE_OLD_TEXTS = "DELETE_OLD_TEXTS" in env
     ? _strictCast.boolean(env.DELETE_OLD_TEXTS)
     : true;
-  env.FIRSTSCAN_DELETE_UNFETCHED = "FIRSTSCAN_DELETE_UNFETCHED" in env
-    ? _strictCast.boolean(env.FIRSTSCAN_DELETE_UNFETCHED)
+  env.GENERAL_SCAN_DELETE_UNFETCHED = "GENERAL_SCAN_DELETE_UNFETCHED" in env
+    ? _strictCast.boolean(env.GENERAL_SCAN_DELETE_UNFETCHED)
     : false;
   env.PARTNER_ALERTS_BATCH_DURATION = "PARTNER_ALERTS_BATCH_DURATION" in env
     ? _strictCast.integer(env.PARTNER_ALERTS_BATCH_DURATION)

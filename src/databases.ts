@@ -4,11 +4,11 @@ import NodeCache from "node-cache";
 import { DelegateStats, PartnerData, ServerBlacklistData, ServerData } from "./commands/partnerships/types.js";
 const Datastore = nedb.default as unknown as typeof nedb.default.default;
 
-interface MiscDbData {
+export interface MiscDbData {
   _id: "1";
   last_scanned_message?: string;
-  last_firstscan_message?: string;
-  is_firstscan_complete?: boolean;
+  last_general_scan_message?: string;
+  is_general_scan_complete?: boolean;
 }
 
 export const DB_DelegationStats = new Datastore<DelegateStats>({
@@ -44,6 +44,8 @@ DB_Misc.find({ _id: "1" }, {}, (err, data) => {
 
 export const BotCache = new NodeCache({ stdTTL: 3 * 24 * 60 * 60 });
 export const MessageInvites = new Collection<string, string>();
+
+export type OmitId<T> = Omit<T, "_id">;
 
 BotCache.set("bot_startedAt", Date.now());
 

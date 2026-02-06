@@ -1,6 +1,6 @@
 import eds from "@eds-fw/framework";
 import { onPartnershipDelete } from "./commands/partnerships/services/handle_delete.js";
-import { _ErrorActionFn, _initErrorAction, ConfigEnv, MSK } from "./corelib.js";
+import { _ErrorActionFn, _initErrorAction, ConfigEnv, logger, MSK } from "./corelib.js";
 import { createSlashCommands } from "./slashCommands.js";
 
 
@@ -59,6 +59,7 @@ export default function initEventListeners(bot: eds.KnownRuntimeProperties) {
   });
 
   bot.client.once("clientReady", async () => {
+    logger.info("Ready to work");
     createSlashCommands(eds.runtimeStorage);
     console.log("Делай со мной всё, что хочешь - я готов ко всему.");
     const guild = await eds.sfGuild(bot.client.guilds, ConfigEnv.GUILD_ID);

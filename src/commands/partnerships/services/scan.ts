@@ -1,12 +1,13 @@
 import eds from "@eds-fw/framework";
 import { Client, Invite, Message } from "discord.js";
-import { ConfigEnv, logger, MSK, resources } from "../../../corelib.js";
+import { ConfigEnv, MSK, resources } from "../../../corelib.js";
 import { DB_Misc, MessageInvites } from "../../../databases.js";
 import { incrementDelegateStats } from "../models/delegate_stats.js";
 import { getServerData, initServerData_byInvite, markAsLatest, updateServerData_byInvite } from "../models/server.js";
 import { DelegateAlerts } from "./alerts.js";
 import { ConditionErrno, validateConditions } from "./check_conditions.js";
-import { runFirstScan } from "./firstscan.js";
+import { runGeneralScan } from "./general_scan.js";
+import { Log } from "./log.js";
 
 
 const ReactionsQueue = new eds.ActionQueue(3_000);
@@ -24,7 +25,6 @@ export async function scanPartnershipChannel(client: Client) {
   let lastScanTimestamp = (await eds.sfMessage(channel.messages, lastScannedMessageId))?.createdTimestamp ?? 0;
   const scannedBefore = !!lastScannedMessageId && !!lastScanTimestamp;
   const notificationWatermark = MSK().date(-3); //за последние 3 дня
-  if (!lastScannedMessageId && !lastScanTimestamp) return;
 
   const performScan = async function() {
     const messages = await channel.messages.fetch({ limit: 100, cache: false, after: lastScannedMessageId }).catch(() => {});
@@ -33,23 +33,24 @@ export async function scanPartnershipChannel(client: Client) {
 
     //Коллекция начинается с самых новых сообщений
     for (const msg of messages.values()) {
-      if (msg.author.bot) {
+      const invite = await validateConditions(msg, false, false);
+      if (invite === ConditionErrno.just_return) {
         await msg.delete().catch(() => {});
         continue;
       }
       if (msg.id == lastScannedMessageId) return false;
-      const invite = await validateConditions(msg, false, false);
 
-      if (invite === ConditionErrno.just_return) continue;
       else if (typeof invite === "number") {
+        const needAlert = scannedBefore && MSK(msg.createdTimestamp).isAfter(notificationWatermark);
         await msg.delete().catch(() => {});
-        if (scannedBefore && MSK(msg.createdTimestamp).isAfter(notificationWatermark))
-          DelegateAlerts.deletePartnership(msg, invite, true);
+        if (needAlert) DelegateAlerts.deletePartnership(msg, invite, true);
+        Log.Scan.messageWrong(msg.id, msg.author.id, invite, needAlert);
         continue;
       }
       else if (invite instanceof Invite && invite.guild) {
         if (CheckedGuilds.has(invite.guild.id)) {
           await msg.delete().catch(() => {});
+          Log.Scan.messageDuplicate(msg.id, msg.author.id);
           continue;
         }
         MessageInvites.set(msg.id, invite.guild.id);
@@ -69,19 +70,27 @@ export async function scanPartnershipChannel(client: Client) {
         }
         deferReaction(msg);
         incrementDelegateStats(msg.author.id, msg.createdTimestamp);
+        Log.Scan.messageOk(msg.id, msg.author.id);
       }
     }
     return true;
   }
 
-  let toContinue = true;
-  while (toContinue) {
-    toContinue = await performScan();
-    await eds.wait(3_000);
+  if (!lastScannedMessageId && !lastScanTimestamp) {
+    Log.Scan.skipScan();
+  }
+  else {
+    Log.Scan.start();
+    let toContinue = true;
+    while (toContinue) {
+      toContinue = await performScan();
+      await eds.wait(3_000);
+    }
+    Log.Scan.end();
   }
 
   if (lastScannedMessageId) markAsLatest(lastScannedMessageId);
-  runFirstScan(client);
+  runGeneralScan(client);
 }
 
 function deferReaction(message: Message) {

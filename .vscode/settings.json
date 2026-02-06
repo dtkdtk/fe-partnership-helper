@@ -3,7 +3,6 @@
     "typescript.tsdk": "node_modules\\typescript\\lib",
     "cSpell.words": [
         "corelib",
-        "firstscan",
         "getconfig",
         "sharedlib",
         "shlib",

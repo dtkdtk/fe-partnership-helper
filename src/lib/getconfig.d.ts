@@ -1,27 +1,27 @@
 import type { DgPermissions } from "./checkAccess_permissions.ts";
 
-type ConfigEnvProperties = Record<
-  | "BOT_SECRET_TOKEN"
-  | "GUILD_ID"
-  | "PARTNERSHIPS_CHANNEL_ID"
-  | "STAFF_CHANNEL_ID"
-  | "BOT_SYSTEM_CHANNEL_ID"
-  | "LOG_LEVEL"
-  | "TextPrefix" //calculated
-  | "BotVersion", //external
-  string
-> & {
+type ConfigEnvProperties = {
+  BOT_SECRET_TOKEN: string;
+  GUILD_ID: string;
+  PARTNERSHIPS_CHANNEL_ID: string;
+  STAFF_CHANNEL_ID: string;
+  BOT_SYSTEM_CHANNEL_ID: string;
   ENABLE_DEBUG: boolean;
   PARTNER_ROLE_ID?: string;
+  ADMIN_ID_LIST: string[];
   REQUIREMENT_MINIMAL_MEMBERS: number;
   REQUIREMENT_ONCE_PER_DAY: boolean;
   DELETE_OLD_TEXTS: boolean;
   GENERAL_SCAN_UNFETCHED_STRATEGY: "DELETE" | "IGNORE" | "COUNT";
   PARTNER_ALERTS_BATCH_DURATION: number;
   TIMEZONE_UTC_OFFSET: number;
-  ADMIN_ID_LIST: string[];
+  LOG_LEVEL: string;
+  LOGS_LIFE_DURATION: number;
+
   /** `Record<roleId, permissionBitflags>` */
   ROLE_PERMISSIONS: Record<string, DgPermissions>;
+  TextPrefix: string; //calculated
+  BotVersion: string; //external
 };
 
 interface Resources {

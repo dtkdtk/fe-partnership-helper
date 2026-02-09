@@ -49,7 +49,7 @@ function _getValidEnv() {
   env.LOG_LEVEL = env.LOG_LEVEL ? env.LOG_LEVEL.toLowerCase() : "info";
   env.REQUIREMENT_MINIMAL_MEMBERS = "REQUIREMENT_MINIMAL_MEMBERS" in env
     ? _strictCast.integer(env.REQUIREMENT_MINIMAL_MEMBERS)
-    : 0;
+    : -1;
   env.REQUIREMENT_ONCE_PER_DAY = "REQUIREMENT_ONCE_PER_DAY" in env
     ? _strictCast.boolean(env.REQUIREMENT_ONCE_PER_DAY)
     : false;
@@ -65,6 +65,9 @@ function _getValidEnv() {
   env.PARTNER_ALERTS_BATCH_DURATION = "PARTNER_ALERTS_BATCH_DURATION" in env
     ? _strictCast.integer(env.PARTNER_ALERTS_BATCH_DURATION)
     : 60;
+  env.LOGS_LIFE_DURATION = "LOGS_LIFE_DURATION" in env
+    ? _strictCast.integer(env.LOGS_LIFE_DURATION)
+    : 30;
   env.ADMIN_ID_LIST = env.ADMIN_ID_LIST
     ? env.ADMIN_ID_LIST.replaceAll(" ", "").split(",")
     : [];
@@ -80,6 +83,10 @@ function _getValidEnv() {
   assert(
     env.REQUIREMENT_ONCE_PER_DAY !== null,
     "Указано некорректное значение для REQUIREMENT_ONCE_PER_DAY. Принимается только TRUE и FALSE"
+  );
+  assert(
+    env.LOGS_LIFE_DURATION !== null,
+    "Указано некорректное значение для LOGS_LIFE_DURATION. Принимаются целые числа"
   );
   assert(
     env.PARTNER_ALERTS_BATCH_DURATION !== null,

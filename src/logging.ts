@@ -1,5 +1,10 @@
+import fs from 'fs';
+import path from 'path';
 import pino from "pino";
 import { ConfigEnv } from "./corelib.js";
+const LOGS_DIR = "./logs";
+const LOGS_LIFE_DURATION = ConfigEnv.LOGS_LIFE_DURATION
+
 
 export const logger = pino({
   level: ConfigEnv.LOG_LEVEL,
@@ -21,3 +26,30 @@ export const logger = pino({
     }]
   },
 });
+
+function cleanOldLogs() {
+  const files = fs.readdirSync(LOGS_DIR);
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - LOGS_LIFE_DURATION);
+  
+  files.forEach(file => {
+    const match = file.match(/^(\d{4})-(\d{2})-(\d{2})\.log$/);
+    if (!match) return;
+
+    const fileDate = new Date(
+      parseInt(match[1]),
+      parseInt(match[2]) - 1,
+      parseInt(match[3])
+    );
+
+    if (fileDate < cutoff) {
+      fs.rm(path.join(LOGS_DIR, file), (err) => {
+        logger.error({ errorObject: err, file }, "Cannot remove old .log file!");
+      });
+      logger.trace({ file }, "Remove old .log file");
+    }
+  });
+}
+    
+cleanOldLogs();
+setInterval(() => cleanOldLogs(), 24 * 60 * 60 * 1000); //каждый день

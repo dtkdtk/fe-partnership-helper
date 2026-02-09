@@ -8,6 +8,7 @@ export async function initServerData(
   guildId: string,
   guildName: string,
   memberCount: number,
+  overrides?: Partial<ServerData>
 ): Promise<ServerData | null> {
   const data: ServerData = {
     _id: guildId,
@@ -17,14 +18,20 @@ export async function initServerData(
     last_members_count: memberCount,
     delegates: {},
     partners: {},
+    ...overrides,
   };
   const success = Boolean(await DB_ServersData.insertAsync(data).catch(() => false));
   return success ? data : null;
 }
 
-export function initServerData_byInvite(invite: Invite): Promise<ServerData | null> {
+export function initServerData_byInvite(invite: Invite, overrides?: Partial<ServerData>): Promise<ServerData | null> {
   if (!invite.guild) return Promise.resolve(null);
-  return initServerData(invite.guild.id, invite.guild.name, invite.memberCount ?? 0);
+  return initServerData(
+    invite.guild.id,
+    invite.guild.name,
+    invite.memberCount ?? 0,
+    overrides
+  );
 } 
 
 export function getServerData(guildId: string): Promise<ServerData | null> {

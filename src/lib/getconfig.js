@@ -56,9 +56,12 @@ function _getValidEnv() {
   env.DELETE_OLD_TEXTS = "DELETE_OLD_TEXTS" in env
     ? _strictCast.boolean(env.DELETE_OLD_TEXTS)
     : true;
-  env.GENERAL_SCAN_DELETE_UNFETCHED = "GENERAL_SCAN_DELETE_UNFETCHED" in env
-    ? _strictCast.boolean(env.GENERAL_SCAN_DELETE_UNFETCHED)
-    : false;
+  env.GENERAL_SCAN_UNFETCHED_STRATEGY = "GENERAL_SCAN_DELETE_UNFETCHED" in env
+    ? (env.GENERAL_SCAN_UNFETCHED_STRATEGY = env.GENERAL_SCAN_UNFETCHED_STRATEGY.toLocaleUpperCase(),
+      ["DELETE", "IGNORE", "COUNT"].includes(env.GENERAL_SCAN_UNFETCHED_STRATEGY)
+      ? env.GENERAL_SCAN_UNFETCHED_STRATEGY
+      : null)
+    : "IGNORE";
   env.PARTNER_ALERTS_BATCH_DURATION = "PARTNER_ALERTS_BATCH_DURATION" in env
     ? _strictCast.integer(env.PARTNER_ALERTS_BATCH_DURATION)
     : 60;
@@ -68,7 +71,7 @@ function _getValidEnv() {
 
   assert(
     env.ENABLE_DEBUG !== null,
-    "Указано некорректное значение для ENABLE_DEBUG. Принимается только TRUE и FALSE (можно строчными)"
+    "Указано некорректное значение для ENABLE_DEBUG. Принимается только TRUE и FALSE"
   );
   assert(
     env.REQUIREMENT_MINIMAL_MEMBERS !== null,
@@ -76,11 +79,15 @@ function _getValidEnv() {
   );
   assert(
     env.REQUIREMENT_ONCE_PER_DAY !== null,
-    "Указано некорректное значение для REQUIREMENT_ONCE_PER_DAY. Принимается только TRUE и FALSE (можно строчными)"
+    "Указано некорректное значение для REQUIREMENT_ONCE_PER_DAY. Принимается только TRUE и FALSE"
   );
   assert(
     env.PARTNER_ALERTS_BATCH_DURATION !== null,
     "Указано некорректное значение для PARTNER_ALERTS_BATCH_DURATION. Принимаются целые числа"
+  );
+  assert(
+    env.GENERAL_SCAN_UNFETCHED_STRATEGY !== null,
+    "Указано некорректное значение для GENERAL_SCAN_UNFETCHED_STRATEGY. Принимается DELETE, IGNORE и COUNT"
   );
   assert(
     env.BOT_SECRET_TOKEN !== undefined,
@@ -88,8 +95,8 @@ function _getValidEnv() {
   );
   assert(
     env.GUILD_ID !== undefined,
-    "Не указан GUILD_ID")
-    ;
+    "Не указан GUILD_ID"
+  );
   assert(
     env.PARTNERSHIPS_CHANNEL_ID !== undefined,
     "Не указан PARTNERSHIPS_CHANNEL_ID"

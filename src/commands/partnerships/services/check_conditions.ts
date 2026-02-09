@@ -48,7 +48,7 @@ export async function validateConditions(
   const serverData = await getServerData(fetchedInvite.guild.id);
   const blacklistData = await getBlacklistData(fetchedInvite.guild.id);
   if (blacklistData) return ConditionErrno.blacklist;
-  if (checkCooldown && getDate(MSK(serverData?.timestamp ?? 1)) == date)
+  if (ConfigEnv.REQUIREMENT_ONCE_PER_DAY && checkCooldown && getDate(MSK(serverData?.timestamp ?? 1)) == date)
     return ConditionErrno.cooldown;
 
   return fetchedInvite;

@@ -4,6 +4,7 @@ import { ConfigEnv, DateRecord, DB_DelegationStats, DB_Misc, DB_ServersData, get
 import { bulkUpdateDgStats } from "../models/delegate_stats.js";
 import { ConditionErrno, validateConditions } from "./check_conditions.js";
 import { Log } from "./log.js";
+import { initServerData_byInvite } from "../models/server.js";
 
 
 const kStopOnRatelimit = Symbol();
@@ -19,12 +20,11 @@ export async function runGeneralScan(client: Client) {
   if (GeneralScanProcess) return;
   const miscDbRecord = await DB_Misc.findOneAsync({ _id: "1" });
   const isCompleted = miscDbRecord.is_general_scan_complete === true;
-  if (isCompleted) return;
+  if (isCompleted) {
+    Log.GeneralScan.skipCuzCompleted();
+    return;
+  }
   GeneralScanProcess = performGeneralScan(client, miscDbRecord);
-  GeneralScanProcess.then(() => {
-    DB_DelegationStats.compactDatafile();
-    DB_ServersData.compactDatafile();
-  });
 }
 
 async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
@@ -32,6 +32,7 @@ async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
   const channel = await eds.sfChannel(guild?.channels, ConfigEnv.PARTNERSHIPS_CHANNEL_ID);
   if (!channel?.isTextBased()) return;
 
+  Log.GeneralScan.begin();
   let result, lastMessage = miscDbRecord.last_general_scan_message, alreadyRatelimited = false;
   while (true) {
     result = await scanChannel(channel, lastMessage);
@@ -64,23 +65,43 @@ async function scanChannel(
   const fetchOptions: FetchMessagesOptions = { limit: 100, cache: false };
   if (lastScannedMsg) fetchOptions.before = lastScannedMsg;
 
-  const messages = await channel.messages.fetch(fetchOptions).catch(() => null);
+  const messages = await Promise.race([
+    channel.messages.fetch(fetchOptions).catch(() => null),
+    eds.wait(3_000).then(() => null)
+  ]);
   if (messages === null) return kStopOnRatelimit;
   if (messages.size === 0) return kStopOnComplete;
   messages.sort((A, B) => B.createdTimestamp - A.createdTimestamp); //Начинаем с новых
 
   for (const msg of messages.values()) {
     const invite = await validateConditions(msg, true, false);
+    const date = getDate(MSK(msg.createdTimestamp));
     if (invite === ConditionErrno.just_return
       || invite === ConditionErrno.no_invite
       || invite === ConditionErrno.this_server
-      || (ConfigEnv.GENERAL_SCAN_DELETE_UNFETCHED && invite === ConditionErrno.unfetched_invite)
     ) {
       Log.GeneralScan.messageDelete(msg.id, msg.author.id, invite);
-      //await msg.delete().catch(() => {});
+      await msg.delete().catch(() => {});
       continue;
     }
-    const date = getDate(MSK(msg.createdTimestamp));
+    else if (invite === ConditionErrno.unfetched_invite) {
+      if (ConfigEnv.GENERAL_SCAN_UNFETCHED_STRATEGY == "DELETE") {
+        Log.GeneralScan.messageDelete(msg.id, msg.author.id, invite);
+        await msg.delete().catch(() => {});
+        continue;
+      }
+      else if (ConfigEnv.GENERAL_SCAN_UNFETCHED_STRATEGY == "IGNORE") {
+        Log.GeneralScan.ignoreUnfetched(msg.id, msg.author.id);
+        continue;
+      }
+      //Если COUNT, то мы просто продолжаем без изменений логики
+    }
+    else if (typeof invite != "number") {
+      await initServerData_byInvite(invite, {
+        delegates: { [date]: msg.author.id },
+        message_id: msg.id,
+      });
+    }
     if (!changesMap.has(msg.author.id)) changesMap.set(msg.author.id, {});
     const userChanges = changesMap.get(msg.author.id)!;
     userChanges[date] = (userChanges[date] ?? 0) + 1;
@@ -98,4 +119,6 @@ async function dbApply(updated: ResultState) {
   for (const [id, dateRec] of updated.stats.entries())
     updatePromises.push(bulkUpdateDgStats(id, dateRec));
   await Promise.all(updatePromises);
+  DB_ServersData.compactDatafile();
+  DB_DelegationStats.compactDatafile();
 }

@@ -3,12 +3,17 @@ import { DB_PartnersData, DB_ServersData } from "../../../databases.js";
 import { PartnerData } from "../types.js";
 
 
-export async function initPartnerData(userId: string, username: string) {
+export async function initPartnerData(
+  userId: string,
+  username: string,
+  overrides?: Partial<PartnerData>
+) {
   const data: PartnerData = {
     _id: userId,
     username,
     delegates: {},
-    server_ids: {}
+    server_ids: {},
+    ...overrides,
   };
   const success = Boolean(await DB_PartnersData.insertAsync(data).catch(() => false));
   return success ? data : null;

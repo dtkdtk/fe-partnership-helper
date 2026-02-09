@@ -17,6 +17,6 @@ export function getBlacklistData(serverId: string): Promise<ServerBlacklistData 
   return DB_ServersBlacklist.findOneAsync({ _id: serverId });
 }
 
-export async function removeFromBlacklist(serverId: string, adminId: string) {
+export async function removeFromBlacklist(serverId: string) {
   await DB_ServersBlacklist.removeAsync({ _id: serverId }, {});
 }

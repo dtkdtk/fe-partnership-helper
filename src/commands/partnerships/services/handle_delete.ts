@@ -4,6 +4,7 @@ import { BotCache, ConfigEnv, MessageInvites } from "../../../corelib.js";
 import { decrementDelegateStats, getDelegateStats } from "../models/delegate_stats.js";
 import { getServerData, updateServerData_byInvite } from "../models/server.js";
 import { validateConditions } from "./check_conditions.js";
+import { Log } from "./log.js";
 
 
 export async function clearOldPartnerships(
@@ -21,9 +22,10 @@ export async function clearOldPartnerships(
   );
   if (!filtered?.size) return;
 
-  filtered.forEach((v, k) =>
-    BotCache.set(`partnership $$ ${k} $$ sudo_deleted`, true)
-  );
+  filtered.forEach((v, k) => {
+    BotCache.set(`partnership $$ ${k} $$ sudo_deleted`, true);
+    Log.Listen.messageOld(k, thisMsg.id);
+  });
   filtered.forEach(async (v, k) =>
     (await eds.sfMessage(channel.messages, k))?.delete().catch(() => {})
   );
@@ -48,4 +50,5 @@ export async function onPartnershipDelete(message: Message<true>) {
   if (delegateStats) {
     await decrementDelegateStats(message.author.id, message.createdTimestamp);
   }
+  Log.Listen.externalDelete(message.id, message.author.id);
 }

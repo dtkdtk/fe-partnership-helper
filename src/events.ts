@@ -35,6 +35,10 @@ export default function initEventListeners(bot: eds.KnownRuntimeProperties) {
   }
 
   bot.client.rest.on("rateLimited", async (E) => {
+    if (E.global)
+      logger.error(E, "Bot is GLOBALLY rate-limited")
+    else
+      logger.trace(E, "Bot is locally rate-limited");
     if (E.global) 
       console.error(
         "(КРИТИЧЕСКИ) БОТ ДОСТИГ РЕЙТ-ЛИМИТА DISCORD И БЫЛ ПРИОСТАНОВЛЕН ДО %s\nЗапрос: %s",

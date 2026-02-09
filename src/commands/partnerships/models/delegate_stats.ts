@@ -9,11 +9,12 @@ const defaultDelegateStats = (userId: string) => ({
   total_partnerships: 0
 });
 
-export async function initDelegateStats(userId: string) {
+export async function initDelegateStats(userId: string, overrides?: Partial<DelegateStats>) {
   await DB_DelegationStats.insertAsync({
     _id: userId,
     activity: {},
-    total_partnerships: 0
+    total_partnerships: 0,
+    ...overrides,
   });
 }
 

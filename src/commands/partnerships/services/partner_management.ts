@@ -1,10 +1,11 @@
 import eds from "@eds-fw/framework";
 import { GuildMember, MessageCreateOptions, PartialGuildMember, UserSelectMenuInteraction } from "discord.js";
-import { ConfigEnv, lastDatedVal, resources, softError, tReply, updateDatedVal } from "../../../corelib.js";
+import { ConfigEnv, DB_ServersData, lastDatedVal, resources, softError, tReply, updateDatedVal } from "../../../corelib.js";
 import { getPartnerData, initPartnerData, isActualPartner, updatePartnerData } from "../models/partner.js";
 import { getServerData } from "../models/server.js";
 import { ServerData } from "../types.js";
 import { PartnerAlerts } from "./alerts.js";
+import { Log } from "./log.js";
 
 
 const NEW_PARTNERS_CACHE_DURATION = 30 * 60 * 1000; //30 минут
@@ -26,6 +27,7 @@ export async function registerPartner(
   updateDatedVal(partnerData.delegates, delegateId);
   updateDatedVal(partnerData.server_ids, serverData._id);
   updateDatedVal(serverData.partners, partnerId);
+  await DB_ServersData.updateAsync({ _id: serverData._id }, serverData);
   await updatePartnerData(partnerData, partnerUsername, delegateId, serverData._id);
 }
 
@@ -40,7 +42,7 @@ export async function handlePartnerLeave(
   if (!staffChannel?.isTextBased()) return softError(new Error("Канал, указанный в STAFF_CHANNEL_ID, не найден / не текстовый."));
   const partnerData = await getPartnerData(partner.id);
   const avatar = eds.getAvatar(partner);
-  const previousDelegateId = lastDatedVal(
+  const lastDelegateId = lastDatedVal(
     partnerData?.delegates ?? {}
   );
 
@@ -60,9 +62,10 @@ export async function handlePartnerLeave(
       ],
   };
 
-  if (partnerData) msg.content = `${resources.emoji.briefcase} <@${previousDelegateId}>`;
+  if (partnerData) msg.content = `${resources.emoji.briefcase} <@${lastDelegateId}>`;
 
   staffChannel.send(msg).catch(() => {});
+  Log.Partners.leave(partner.id, lastDelegateId ?? null);
 }
 
 
@@ -112,13 +115,15 @@ async function _resolvePartner(
   
   if (!isAlreadyPartner || NewPartnersCache.has(partner.id)) {
     PartnerAlerts.NewPartnership.queueAlert(
-      partner.user, delegate, serverData.last_name
+      partner.user, delegate, serverData.last_name, serverData._id
     );
     cacheNewPartner(partner.id);
   }
+  Log.Partners.newPartner(partner.id, serverData._id, delegate.id);
 
   if (prevPartnerID) {
     const isActual = await isActualPartner(prevPartnerID);
+    Log.Partners.deleteOld(prevPartnerID, partner.id, serverData._id, delegate.id);
     if (!isActual && ConfigEnv.PARTNER_ROLE_ID) {
       const member = await eds.sfMember(delegate.guild.members, prevPartnerID);
       if (member)

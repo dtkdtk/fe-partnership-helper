@@ -1,10 +1,11 @@
 import eds from "@eds-fw/framework";
 import { BaseMessageOptions, ButtonStyle, ComponentType, Invite, MessageActionRowComponentData, MessageFlags, SelectMenuDefaultValueType, TextInputStyle } from "discord.js";
 import { BotCache, checkPermission, DgPermissions, emoji, lastDatedVal, resources, tReply } from "../../corelib.js";
-import { addToBlacklist, getBlacklistData } from "./models/blacklist.js";
+import { addToBlacklist, getBlacklistData, removeFromBlacklist } from "./models/blacklist.js";
 import { getPartnerData } from "./models/partner.js";
 import { getServerData, updateServerData_byInvite } from "./models/server.js";
 import { fetchInvite } from "./services/check_conditions.js";
+import { Log } from "./services/log.js";
 import { partnerMenuSource } from "./services/partner_management.js";
 import { ServerData } from "./types.js";
 
@@ -13,11 +14,11 @@ type GuildInvite = (Invite & { guild: NonNullable<Invite["guild"]> });
 
 export default {
   async run(ctx) {
-    const rawTarget = ctx.options.getString("target")!;
-    const isInvite = /^\D$/g.test(rawTarget);
+    const rawTarget = ctx.options.getString("target")!.trim();
+    const isGuildId = /^\d+$/.test(rawTarget);
     let targetGuildId: string, maybeInvite: GuildInvite | undefined;
     let partnershipDbData: ServerData | null;
-    if (isInvite) {
+    if (!isGuildId) {
       const invite = await fetchInvite([rawTarget], ctx.client);
       if (typeof invite == "number" || !invite?.guild)
         return tReply.error(ctx, "Ошибка", "Сервер не распознан.");
@@ -26,7 +27,7 @@ export default {
         partnershipDbData = await getServerData(targetGuildId);
         maybeInvite = invite as GuildInvite;
         if (partnershipDbData)
-          updateServerData_byInvite(partnershipDbData, invite, lastDatedVal(partnershipDbData.delegates));
+          updateServerData_byInvite(partnershipDbData, invite);
       }
     }
     else {
@@ -63,7 +64,7 @@ export default {
         .filter(x => x != null)
       : [];
     const delegates = delegateIDs.length
-      ? (await Promise.all(partnerIDs.map(id => eds.sfUser(ctx, id))))
+      ? (await Promise.all(delegateIDs.map(id => eds.sfUser(ctx, id))))
         .filter(x => x != null)
       : [];
     const prevPartnerID = partnershipDbData
@@ -74,7 +75,7 @@ export default {
     const mbBlacklistData = await getBlacklistData(targetGuildId);
     const mbBlacklistAdmin = await eds.sfUser(ctx, mbBlacklistData?.admin_id);
     const displayBlacklist = mbBlacklistData
-      ? `\n# В ЧЁРНОМ СПИСКЕ\n**Причина:** ${mbBlacklistData.reason}\n**Админ:** ${mbBlacklistAdmin?.username ?? mbBlacklistData.admin_id}\n**Дата:** <:t:${Math.floor(mbBlacklistData.timestamp / 1000)}:d>`
+      ? `\n# В ЧЁРНОМ СПИСКЕ\n**Причина:** ${mbBlacklistData.reason}\n**Админ:** \`${mbBlacklistAdmin?.username ?? mbBlacklistData.admin_id}\`\n**Дата:** <t:${Math.floor(mbBlacklistData.timestamp / 1000)}:d>`
       : "";
     
     const displayPartners = partners.length
@@ -155,7 +156,7 @@ export default {
   },
 
   info: {
-    name: "редактировать-сервер",
+    name: "редактировать-партнёрство",
     type: "slash",
     desc: "Редактировать данные о партнёрстве",
   },
@@ -178,6 +179,8 @@ eds.createMenu(
     await partnerMenuSource(ctx, targetGuildId, targetGuildName);
   }
 );
+
+
 
 eds.createButton(
   {
@@ -292,5 +295,93 @@ eds.createModal(
         .catch(console.error);
 
     await addToBlacklist(targetGuildId, reason, ctx.user.id);
+    Log.EditServer.addBlacklist(targetGuildId, ctx.user.id, reason);
+  }
+);
+
+
+
+eds.createButton(
+  {
+    custom_id: "edit-server.blacklist.remove",
+  },
+  async (ctx) => {
+    ctx
+      .update({
+        embeds: [
+          {
+            color: resources.colors.gray,
+            description:
+              resources.emoji.warning + " **Вы уверены что хотите удалить данный сервер из ЧС?**",
+          },
+        ],
+        components: [
+          {
+            type: ComponentType.ActionRow,
+            components: [
+              {
+                type: ComponentType.Button,
+                style: ButtonStyle.Secondary,
+                customId: "edit-server.blacklist.remove:cancel",
+                label: "Отмена",
+                emoji: emoji(resources.button_icons.no),
+              },
+            ],
+          },
+          {
+            type: ComponentType.ActionRow,
+            components: [
+              {
+                type: ComponentType.Button,
+                style: ButtonStyle.Success,
+                customId: "edit-server.blacklist.remove:confirm",
+                label: "Удалить из ЧС",
+                emoji: emoji(resources.button_icons.yes),
+              },
+            ],
+          },
+        ],
+      })
+      .catch(console.error);
+  }
+);
+eds.createButton(
+  {
+    custom_id: "edit-server.blacklist.remove:cancel",
+  },
+  async (ctx) => {
+    ctx
+      .update({
+        content: '*На "нет" и суда нет...*',
+        embeds: [],
+        components: [],
+      })
+      .catch(console.error);
+  }
+);
+eds.createButton(
+  {
+    custom_id: "edit-server.blacklist.remove:confirm",
+  },
+  async (ctx) => {
+    if (!ctx.message) return;
+    const targetGuildId = BotCache.get(
+      `message $$ ${ctx.message.id} $$ target_guild`
+    ) as string;
+
+    ctx
+      .update({
+        embeds: [
+          {
+            color: resources.colors.gray,
+            title: "Сервер удалён из ЧС.",
+          },
+        ],
+        components: [],
+      })
+      .catch(console.error);
+
+    await removeFromBlacklist(targetGuildId);
+    Log.EditServer.removeBlacklist(targetGuildId, ctx.user.id);
   }
 );

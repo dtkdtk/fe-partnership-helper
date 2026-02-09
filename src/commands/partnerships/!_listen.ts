@@ -1,4 +1,4 @@
-import eds from "@eds-fw/framework";
+import eds, { CommandContext } from "@eds-fw/framework";
 import { ComponentType, SelectMenuDefaultValueType } from "discord.js";
 import { BotCache, checkPermission, ConfigEnv, DgPermissions, getDate, lastDatedVal, MessageInvites, MSK, noAccess, resources } from "../../corelib.js";
 import { getDelegateStats, incrementDelegateStats, initDelegateStats } from "./models/delegate_stats.js";
@@ -7,6 +7,7 @@ import { DelegateAlerts } from "./services/alerts.js";
 import { ConditionErrNames, ConditionErrno, validateConditions } from "./services/check_conditions.js";
 import { clearOldPartnerships } from "./services/handle_delete.js";
 import { partnerMenuSource } from "./services/partner_management.js";
+import { Log } from "./services/log.js";
 
 
 export default {
@@ -25,12 +26,16 @@ export default {
     if (minimalMembers && invite.memberCount && invite.memberCount < minimalMembers)
       warnings.push(`## ${resources.emoji.warning} **ВНИМАНИЕ! На сервере нет [${minimalMembers}] участников.**`);
 
-    clearOldPartnerships(ctx, invite);
+    if (ConfigEnv.DELETE_OLD_TEXTS) clearOldPartnerships(ctx, invite);
     MessageInvites.set(ctx.id, invite.guild.id);
 
     let isNewPartnership = false;
     const serverData = await getServerData(invite.guild.id)
       ?? (isNewPartnership = true, await initServerData_byInvite(invite))!;
+
+    //Более точечный/гарантированный вариант в сравнении с clearOldPartnerships().
+    if (!isNewPartnership && serverData.message_id && ConfigEnv.DELETE_OLD_TEXTS)
+      deleteOldPartnership(ctx, serverData.message_id);
 
     serverData.message_id = ctx.id;
     const prevDelegateID = lastDatedVal(serverData.delegates)
@@ -91,7 +96,7 @@ ID: \`${invite.guild.id}\`
               {
                 type: ComponentType.UserSelect,
                 custom_id: "partnership.set-partner",
-                placeholder: "Назначить партнёра",
+                placeholder: "Назначить партнёра (если с ВЗ)",
                 ...(prevPartnerID
                   ? { default_values: [{
                       type: SelectMenuDefaultValueType.User,
@@ -105,6 +110,7 @@ ID: \`${invite.guild.id}\`
         ],
       })
       .catch(console.error);
+    Log.Listen.messageOk(ctx.id, ctx.author.id);
     ctx.react(resources.button_icons.yes).catch(console.error);
     if (!reply) return;
 
@@ -140,9 +146,8 @@ eds.createMenu(
         "Сообщение с партнёрством не найдено."
       );
     if (
-      !checkPermission(delegate, DgPermissions.postPartnerships) &&
-      !checkPermission(delegate, DgPermissions.managePartnerships) &&
       ctx.user.id != partnershipMsg.author.id
+      && !checkPermission(delegate, DgPermissions.managePartnerships)
     ) return noAccess(ctx);
   
     const invite = await validateConditions(partnershipMsg, true);
@@ -159,6 +164,7 @@ eds.createMenu(
 
 async function _sendError(ctx: eds.CommandContext<"text">, errno: ConditionErrno) {
   if (!ctx.inGuild()) return;
+  Log.Listen.messageWrong(ctx.id, ctx.author.id, errno);
   const text = ConditionErrNames[errno];
   BotCache.set(`partnership $$ ${ctx.id} $$ sudo_deleted`, true);
   const reply = await ctx
@@ -186,4 +192,11 @@ async function _sendError(ctx: eds.CommandContext<"text">, errno: ConditionErrno
   const deleteResult = await ctx.delete().catch(() => null);
 
   if (deleteResult != null) DelegateAlerts.deletePartnership(ctx, errno);
+}
+
+async function deleteOldPartnership(ctx: CommandContext<"text">, messageId: string) {
+  const message = await eds.sfMessage(ctx, messageId);
+  if (!message) return;
+  message.delete().catch(() => {});
+  Log.Listen.messageOld(messageId, ctx.id);
 }

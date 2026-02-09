@@ -3,19 +3,25 @@ import { ButtonStyle, ComponentType, GuildMember, Message, MessageCreateOptions,
 import { ConfigEnv, emoji, quotePartnership, resources } from "../../../corelib.js";
 import { TimedQueue } from "../../../lib/timedQueue.js";
 import { ConditionErrNames, ConditionErrno } from "./check_conditions.js";
+import { Log } from "./log.js";
 
 
 export namespace PartnerAlerts {
 
-  type AlertsQHandle = { partner: User, delegate: GuildMember, queue: TimedQueue<string> };
+  type AlertsQHandle = {
+    partner: User,
+    delegate: GuildMember,
+    queue: TimedQueue<[string, string]>
+  };
   const TIMED_QUEUE_DURATION = ConfigEnv.PARTNER_ALERTS_BATCH_DURATION * 1000;
   const PartnershipAlertsQueue = new Map<string, AlertsQHandle>();
   function _initQueue(inputHandle: Omit<AlertsQHandle, "queue">) {
     const handle = inputHandle as AlertsQHandle;
-    const Q = new TimedQueue<string>(TIMED_QUEUE_DURATION);
-    Q.executor = (guildNames) => {
+    const Q = new TimedQueue<[string, string]>(TIMED_QUEUE_DURATION);
+    Q.executor = (guilds) => {
       NewPartnership._sendAlert(
-        handle.partner, handle.delegate, guildNames
+        handle.partner, handle.delegate,
+        guilds.map(x => x[0]), guilds.map(x => x[1])
       );
       PartnershipAlertsQueue.delete(handle.partner.id);
     }
@@ -28,18 +34,20 @@ export namespace PartnerAlerts {
     export function queueAlert(
       partner: User,
       delegate: GuildMember,
-      guildName: string
+      guildName: string,
+      guildId: string
     ) {
       const handle = PartnershipAlertsQueue.get(partner.id)
         ?? _initQueue({ partner, delegate });
-      handle.queue.add(guildName);
+      handle.queue.add([guildName, guildId]);
       handle.queue.restart();
     }
 
     export async function _sendAlert(
       partner: User,
       delegate: GuildMember,
-      partnerGuilds: string[]
+      partnerGuilds: string[],
+      partnerGuildIds: string[]
     ): Promise<boolean> {
       const guild = delegate.guild;
       const displayThanks = resources.text_fragments.partnerAlert_thanks + "\n";
@@ -67,8 +75,9 @@ export namespace PartnerAlerts {
           ],
         })
         .catch(() => {});
-      if (message) return true;
-      return false;
+      const successful = !!message;
+      Log.DMAlert.partner(partner.id, partnerGuildIds, successful);
+      return successful;
     }
   }
 }
@@ -82,42 +91,28 @@ export namespace DelegateAlerts {
   ) {
     const errorMsg = ConditionErrNames[errno];
     const partnershipTextDisplay = quotePartnership(message.content);
-      const msg: MessageCreateOptions = {
-          content: `<@${message.author.id}>**, ваш текст партнёрства не проходит по условиям! ${isOffline ? "(при перепроверке)" : ""}**`,
-          embeds: [
-            {
-              color: resources.colors.default,
-              description: `**Нарушенное условие:**\n${errorMsg}\n\n**Сам текст:** ||\n${partnershipTextDisplay}||\n\n${resources.emoji.warning} **Этот текст был автоматически удалён.**`,
-              footer: eds.getRandomFooterEmbed().data_djs,
-            },
-          ],
-          components: [
-            {
-              type: ComponentType.ActionRow,
-              components: [
-                {
-                  type: ComponentType.Button,
-                  style: ButtonStyle.Link,
-                  url: `https://discord.com/channels/${message.guildId}/${message.channelId}/${message.id}`,
-                  label: "К сообщению с партнёрством",
-                  emoji: emoji(resources.button_icons.link),
-                },
-              ],
-            },
-          ],
-        };
-        try {
-          await message.author.send(msg);
-        }
-        catch (_) {
-          const delegateRoom = await eds.sfChannel(
-            message.guild.channels,
-            ConfigEnv.STAFF_CHANNEL_ID
-          );
-          if (!delegateRoom?.isTextBased() || !delegateRoom.isSendable()) return;
-          delegateRoom
-            .send(msg)
-            .catch(() => {});
-        }
+    const msg: MessageCreateOptions = {
+      content: `<@${message.author.id}>**, ваш текст партнёрства не проходит по условиям и был УДАЛЁН! ${isOffline ? "(при перепроверке)" : ""}**`,
+      embeds: [
+        {
+          color: resources.colors.default,
+          description: `**Нарушенное условие:**\n${errorMsg}\n\n**Сам текст:** ||\n${partnershipTextDisplay}||\n\n${resources.emoji.warning} **Этот текст был автоматически удалён.**`,
+          footer: eds.getRandomFooterEmbed().data_djs,
+        },
+      ],
+    };
+    let success = !!(await message.author.send(msg).catch(() => {}));
+    Log.DMAlert.deletePartnership(message.id, message.author.id, success);
+    if (!success) {
+      const delegateRoom = await eds.sfChannel(
+        message.guild.channels,
+        ConfigEnv.STAFF_CHANNEL_ID
+      );
+      if (!delegateRoom?.isTextBased() || !delegateRoom.isSendable()) return;
+      success = !!(await delegateRoom
+        .send(msg)
+        .catch(() => {}));
+      Log.DMAlert.deletePartnershipFallback(message.id, message.author.id, success);
+    }
   }
 }

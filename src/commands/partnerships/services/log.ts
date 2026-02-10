@@ -1,5 +1,5 @@
 import moment from "moment";
-import { logger, MSK } from "../../../corelib.js";
+import { BotCache, logger, MSK } from "../../../corelib.js";
 import { ConditionErrno } from "./check_conditions.js";
 import { ResultState } from "./general_scan.js";
 
@@ -98,14 +98,30 @@ export namespace Log {
     export function stopOnComplete() {
       logger.warn("GeneralScan: SUCCESSFULLY COMPLETED !!!");
     }
-    export function messageOk(messageId: string, delegateId: string) {
-      logger.trace({ messageId, delegateId }, "GeneralScan: successful partnership, respect");
+    export function messageOk(
+      messageId: string,
+      delegateId: string,
+      inviteCode: string
+    ) {
+      const isCached = BotCache.has(`invite_by_code $$ ${inviteCode}`);
+      logger.trace({ messageId, delegateId, inviteCode, isCached }, "GeneralScan: successful partnership, respect");
     }
-    export function messageDelete(messageId: string, delegateId: string, errno: ConditionErrno) {
-      logger.trace({ messageId, delegateId, errno }, "GeneralScan: delete partnership");
+    export function messageDelete(
+      messageId: string,
+      delegateId: string,
+      errno: ConditionErrno,
+      inviteCode: string | null = null
+    ) {
+      const isCached = inviteCode ? BotCache.has(`invite_by_code $$ ${inviteCode}`) : null;
+      logger.trace({ messageId, delegateId, errno, inviteCode, isCached }, "GeneralScan: delete partnership");
     }
-    export function ignoreUnfetched(messageId: string, delegateId: string) {
-      logger.trace({ messageId, delegateId }, "GeneralScan: ignore partnership with unfetched invite");
+    export function ignoreUnfetched(
+      messageId: string,
+      delegateId: string,
+      inviteCode: string
+    ) {
+      const isCached = BotCache.has(`invite_by_code $$ ${inviteCode}`);
+      logger.trace({ messageId, delegateId, inviteCode, isCached }, "GeneralScan: ignore partnership with unfetched invite");
     }
     export function applyChanges(state: ResultState) {
       const { lastMessage } = state;

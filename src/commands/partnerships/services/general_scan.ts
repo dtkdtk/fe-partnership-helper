@@ -2,14 +2,14 @@ import { eds } from "@eds-fw/framework";
 import { Client, FetchMessagesOptions, GuildTextBasedChannel } from "discord.js";
 import { ConfigEnv, DateRecord, DB_DelegationStats, DB_Misc, DB_ServersData, getDate, MiscDbData, MSK } from "../../../corelib.js";
 import { bulkUpdateDgStats } from "../models/delegate_stats.js";
-import { ConditionErrno, validateConditions } from "./check_conditions.js";
-import { Log } from "./log.js";
 import { initServerData_byInvite } from "../models/server.js";
+import { ConditionErrno, extractInviteCodes, validateConditions } from "./check_conditions.js";
+import { Log } from "./log.js";
 
 
 const kStopOnRatelimit = Symbol();
 const kStopOnComplete = Symbol();
-const WAIT_AFTER_RATELIMIT = 60_000;
+const WAIT_AFTER_RATELIMIT = 10 * 60 * 1000; //10 минут
 
 type StatsChangesMap = Map<string, DateRecord<number>>;
 export type ResultState = { lastMessage: string | undefined; stats: StatsChangesMap };
@@ -38,9 +38,8 @@ async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
     result = await scanChannel(channel, lastMessage);
     if (result === kStopOnRatelimit) {
       Log.GeneralScan.stopOnRatelimit(alreadyRatelimited ? WAIT_AFTER_RATELIMIT : null);
-      if (alreadyRatelimited) break;
       alreadyRatelimited = true;
-      await eds.wait(WAIT_AFTER_RATELIMIT);
+      if (alreadyRatelimited) await eds.wait(WAIT_AFTER_RATELIMIT);
       continue;
     }
     else if (result === kStopOnComplete) {
@@ -51,7 +50,6 @@ async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
     lastMessage = result.lastMessage;
     Log.GeneralScan.applyChanges(result);
     await dbApply(result);
-    await eds.wait(15_000); //между fetch'ами сообщений
   }
 
   if (result === kStopOnComplete)
@@ -74,24 +72,28 @@ async function scanChannel(
   messages.sort((A, B) => B.createdTimestamp - A.createdTimestamp); //Начинаем с новых
 
   for (const msg of messages.values()) {
+    const inviteCode = extractInviteCodes(msg.content)[0];
     const invite = await validateConditions(msg, true, false);
     const date = getDate(MSK(msg.createdTimestamp));
-    if (invite === ConditionErrno.just_return
+    if (invite === ConditionErrno.rate_limit) {
+      return kStopOnRatelimit;
+    }
+    else if (invite === ConditionErrno.just_return
       || invite === ConditionErrno.no_invite
       || invite === ConditionErrno.this_server
     ) {
-      Log.GeneralScan.messageDelete(msg.id, msg.author.id, invite);
+      Log.GeneralScan.messageDelete(msg.id, msg.author.id, invite, inviteCode);
       await msg.delete().catch(() => {});
       continue;
     }
     else if (invite === ConditionErrno.unfetched_invite) {
       if (ConfigEnv.GENERAL_SCAN_UNFETCHED_STRATEGY == "DELETE") {
-        Log.GeneralScan.messageDelete(msg.id, msg.author.id, invite);
+        Log.GeneralScan.messageDelete(msg.id, msg.author.id, invite, inviteCode);
         await msg.delete().catch(() => {});
         continue;
       }
       else if (ConfigEnv.GENERAL_SCAN_UNFETCHED_STRATEGY == "IGNORE") {
-        Log.GeneralScan.ignoreUnfetched(msg.id, msg.author.id);
+        Log.GeneralScan.ignoreUnfetched(msg.id, msg.author.id, inviteCode);
         continue;
       }
       //Если COUNT, то мы просто продолжаем без изменений логики
@@ -107,7 +109,8 @@ async function scanChannel(
     userChanges[date] = (userChanges[date] ?? 0) + 1;
     changesMap.set(msg.author.id, userChanges);
     lastScannedMsg = msg.id;
-    Log.GeneralScan.messageOk(msg.id, msg.author.id);
+    Log.GeneralScan.messageOk(msg.id, msg.author.id, inviteCode);
+    await eds.wait(1000);
   }
   return { lastMessage: lastScannedMsg, stats: changesMap };
 }

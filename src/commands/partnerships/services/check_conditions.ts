@@ -1,8 +1,9 @@
 import { Client, Invite, Message } from "discord.js";
 import { botConfig } from "../../../bot_config.js";
-import { ConfigEnv, getDate, MSK } from "../../../corelib.js";
+import { BotCache, ConfigEnv, getDate, MSK } from "../../../corelib.js";
 import { getBlacklistData } from "../models/blacklist.js";
 import { getServerData } from "../models/server.js";
+import { wait } from "@eds-fw/framework";
 
 
 export enum ConditionErrno {
@@ -13,6 +14,7 @@ export enum ConditionErrno {
   cooldown,
   blacklist,
   this_server,
+  rate_limit,
 }
 export const ConditionErrNames: Record<ConditionErrno, string> = {
   [ConditionErrno.just_return]: "*just*",
@@ -22,6 +24,7 @@ export const ConditionErrNames: Record<ConditionErrno, string> = {
   [ConditionErrno.cooldown]: `**Кулдаун.** Каждый сервер можно публиковать только \`1 раз\` в день. Данный сервер уже публиковался сегодня`,
   [ConditionErrno.blacklist]: `**О НЕЕЕТ! Данный сервер в Чёрном списке (ЧС).**`,
   [ConditionErrno.this_server]: `**Не балуйтесь!** Вы публикуете текст этого же сервера.`,
+  [ConditionErrno.rate_limit]: `**ОШИБКА ОШИБКА ОШИБКА ОШИБКА**\n**Бот улетел в рейт-лимит!** И временно не может обработать данный запрос.\nПодождите несколько минут.`,
 };
 
 export async function validateConditions(
@@ -33,9 +36,7 @@ export async function validateConditions(
   if (message.author.bot) return 0;
   if (message.system) return 0;
   if (message.content.startsWith(botConfig.prefix!)) return 0;
-  const inviteMatches = message.content.match(
-    /(https:\/\/|)(discord.gg|discord.com\/invite)\/[a-zA-Z0-9-_]+/g
-  );
+  const inviteMatches = extractInviteCodes(message.content);
   if (!inviteMatches?.length) return ConditionErrno.no_invite;
 
   const fetchedInvite = await fetchInvite(inviteMatches, message.client);
@@ -54,21 +55,36 @@ export async function validateConditions(
   return fetchedInvite;
 }
 
-export async function fetchInvite(
-  invites: string[],
-  client: Client
-): Promise<ConditionErrno | Invite> {
-  let fetchedInvite: (Invite | null)[] = [];
-  for (const invite of invites)
-    fetchedInvite.push(await client.fetchInvite(invite).catch(() => null));
-  fetchedInvite = fetchedInvite.filter((it) => it != null);
-  if (fetchedInvite.length == 0) return ConditionErrno.unfetched_invite;
+/** Возвращает коды приглашений */
+export function extractInviteCodes(wholeText: string): string[] {
+  const inviteParts = wholeText.matchAll(/(https:\/\/|)(discord.gg|discord.com\/invite)\/([a-zA-Z0-9-_]+)/);
+  const inviteCodes = inviteParts.map(M => M[2]);
+  return inviteCodes.toArray();
+}
+
+export async function fetchInvite(inviteCodes: string[], client: Client): Promise<ConditionErrno | Invite> {
+  const rawFetchResults: (Invite | ConditionErrno)[] = [];
+  for (const iCode of inviteCodes) {
+    const maybeCached = BotCache.get<Invite | null>(`invite_by_code $$ ${iCode}`);
+    if (maybeCached) rawFetchResults.push(maybeCached);
+    else if (maybeCached === null) rawFetchResults.push(ConditionErrno.unfetched_invite);
+    else rawFetchResults.push(await Promise.race([
+      client.fetchInvite(iCode).catch(() => (BotCache.set(`invite_by_code $$ ${iCode}`, null), ConditionErrno.unfetched_invite)),
+      wait(5_000).then(() => ConditionErrno.rate_limit),
+    ]));
+  }
+  const cleanFetchResults = rawFetchResults.filter((it) => typeof it != "number");
+  if (cleanFetchResults.length == 0) return rawFetchResults.find((it) => typeof it == "number")
+    ?? ConditionErrno.unfetched_invite;
+  
+  const invitesFetched = rawFetchResults as Invite[];
+  invitesFetched.forEach(invite => BotCache.set(`invite_by_code $$ ${invite.code}`, invite));
   if (
-    fetchedInvite.filter(
-      (x, i) => x?.guild?.id != fetchedInvite.at(i - 1)?.guild?.id
+    invitesFetched.filter(
+      (x, i) => x?.guild?.id != invitesFetched.at(i - 1)?.guild?.id
     ).length > 0
-  )
+  ) {
     return ConditionErrno.many_invites;
-  const invite_fetched = fetchedInvite[0]!;
-  return invite_fetched;
+  }
+  return invitesFetched[0]!;
 }

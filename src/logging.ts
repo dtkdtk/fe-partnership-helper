@@ -28,7 +28,9 @@ export const logger = pino({
 });
 
 function cleanOldLogs() {
-  const files = fs.readdirSync(LOGS_DIR);
+  let files;
+  try { files = fs.readdirSync(LOGS_DIR) }
+  catch (E) { return }
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - LOGS_LIFE_DURATION);
   
@@ -50,6 +52,5 @@ function cleanOldLogs() {
     }
   });
 }
-    
-cleanOldLogs();
+
 setInterval(() => cleanOldLogs(), 24 * 60 * 60 * 1000); //каждый день

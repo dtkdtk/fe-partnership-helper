@@ -5,7 +5,7 @@ import {
   DgPermissions,
   noAccess,
 } from "../corelib.js";
-import { BotCache, DB_Misc } from "../databases.js";
+import { BotCache, DB_DelegationStats, DB_Misc } from "../databases.js";
 import {
   getDelegateStats,
   initDelegateStats
@@ -57,7 +57,7 @@ async function scmPartnerships(ctx: eds.TextContext) {
         return;
       }
       dgStats.total_partnerships += amount;
-      await initDelegateStats(userId, dgStats);
+      await DB_DelegationStats.updateAsync({ _id: userId }, dgStats);
 
       const miscDbData = await DB_Misc.findOneAsync({ _id: "1" });
       miscDbData.no_total_delegates.push(userId);
@@ -90,7 +90,7 @@ async function scmPartnerships(ctx: eds.TextContext) {
         return;
       }
       dgStats.total_partnerships += amount;
-      await initDelegateStats(userId);
+      await DB_DelegationStats.updateAsync({ _id: userId }, dgStats);
 
       await ctx
         .reply(

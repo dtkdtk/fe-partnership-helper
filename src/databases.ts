@@ -39,14 +39,17 @@ export const DB_Misc = new Datastore<MiscDbData>({
   autoload: true,
 });
 export const DB_InvitesCache = new Datastore<AsceticInvite | {}>({
-  filename: "./databases/invites_cache.db",
+  filename: "./database/invites_cache.db",
   inMemoryOnly: false,
   autoload: true,
 });
 
 DB_Misc.find({ _id: "1" }, {}, (err, data) => {
   if (err) console.error(err);
-  if (!data?.length) DB_Misc.insert({ _id: "1", no_total_delegates: [] });
+  if (!data?.length) {
+    DB_Misc.insert({ _id: "1", no_total_delegates: [] });
+    DB_Misc.compactDatafile();
+  }
 });
 
 export const BotCache = new NodeCache({ stdTTL: 3 * 24 * 60 * 60 });

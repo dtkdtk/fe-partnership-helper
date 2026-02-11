@@ -1,7 +1,7 @@
 import * as nedb from "@seald-io/nedb";
 import { Collection } from "discord.js";
 import NodeCache from "node-cache";
-import { DelegateStats, PartnerData, ServerBlacklistData, ServerData } from "./commands/partnerships/types.js";
+import { AsceticInvite, DelegateStats, PartnerData, ServerBlacklistData, ServerData } from "./commands/partnerships/types.js";
 const Datastore = nedb.default as unknown as typeof nedb.default.default;
 
 export interface MiscDbData {
@@ -33,6 +33,11 @@ export const DB_ServersBlacklist = new Datastore<ServerBlacklistData>({
 });
 export const DB_Misc = new Datastore<MiscDbData>({
   filename: "./database/misc.db",
+  inMemoryOnly: false,
+  autoload: true,
+});
+export const DB_InvitesCache = new Datastore<AsceticInvite | {}>({
+  filename: "./databases/invites_cache.db",
   inMemoryOnly: false,
   autoload: true,
 });

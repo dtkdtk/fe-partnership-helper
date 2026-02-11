@@ -2,6 +2,7 @@ import { eds } from "@eds-fw/framework";
 import { Client, FetchMessagesOptions, GuildTextBasedChannel } from "discord.js";
 import { ConfigEnv, DateRecord, DB_DelegationStats, DB_Misc, DB_ServersData, getDate, MiscDbData, MSK } from "../../../corelib.js";
 import { bulkUpdateDgStats } from "../models/delegate_stats.js";
+import { InvitesCache } from "../models/invites_cache.js";
 import { initServerData_byInvite } from "../models/server.js";
 import { ConditionErrno, extractInviteCodes, validateConditions } from "./check_conditions.js";
 import { Log } from "./log.js";
@@ -73,7 +74,8 @@ async function scanChannel(
 
   for (const msg of messages.values()) {
     const inviteCode = extractInviteCodes(msg.content)[0];
-    const invite = await validateConditions(msg, true, false);
+    const isCached = inviteCode ? (await InvitesCache.get(inviteCode)) !== null : null;
+    const invite = await validateConditions(msg, { justGetInvite: true, checkCooldown: false });
     const date = getDate(MSK(msg.createdTimestamp));
     if (invite === ConditionErrno.rate_limit) {
       return kStopOnRatelimit;
@@ -82,18 +84,18 @@ async function scanChannel(
       || invite === ConditionErrno.no_invite
       || invite === ConditionErrno.this_server
     ) {
-      Log.GeneralScan.messageDelete(msg.id, msg.author.id, invite, inviteCode);
+      Log.GeneralScan.messageDelete(msg.id, msg.author.id, invite, inviteCode, isCached);
       await msg.delete().catch(() => {});
       continue;
     }
     else if (invite === ConditionErrno.unfetched_invite) {
       if (ConfigEnv.GENERAL_SCAN_UNFETCHED_STRATEGY == "DELETE") {
-        Log.GeneralScan.messageDelete(msg.id, msg.author.id, invite, inviteCode);
+        Log.GeneralScan.messageDelete(msg.id, msg.author.id, invite, inviteCode, isCached);
         await msg.delete().catch(() => {});
         continue;
       }
       else if (ConfigEnv.GENERAL_SCAN_UNFETCHED_STRATEGY == "IGNORE") {
-        Log.GeneralScan.ignoreUnfetched(msg.id, msg.author.id, inviteCode);
+        Log.GeneralScan.ignoreUnfetched(msg.id, msg.author.id, inviteCode, isCached);
         continue;
       }
       //Если COUNT, то мы просто продолжаем без изменений логики
@@ -109,7 +111,7 @@ async function scanChannel(
     userChanges[date] = (userChanges[date] ?? 0) + 1;
     changesMap.set(msg.author.id, userChanges);
     lastScannedMsg = msg.id;
-    Log.GeneralScan.messageOk(msg.id, msg.author.id, inviteCode);
+    Log.GeneralScan.messageOk(msg.id, msg.author.id, inviteCode, isCached);
     await eds.wait(1000);
   }
   return { lastMessage: lastScannedMsg, stats: changesMap };

@@ -1,3 +1,4 @@
+import { Invite } from "discord.js";
 import { DateRecord } from "../../corelib.js";
 
 
@@ -35,6 +36,34 @@ export interface ServerBlacklistData {
 
   reason: string;
   admin_id: string;
+}
+
+export interface AsceticInvite {
+  /** Invite code */
+  _id: string;
+  guild: {
+    id: string;
+    name: string;
+    iconURL?: string;
+  };
+  temporary: boolean;
+  memberCount?: number;
+  lastUpdateTimestamp: number;
+}
+export namespace AsceticInvite {
+  export function from(invite: Invite): AsceticInvite {
+    return {
+      _id: invite.code,
+      guild: {
+        id: invite.guild!.id,
+        name: invite.guild!.name,
+        iconURL: invite.guild!.iconURL() ?? undefined,
+      },
+      temporary: !!(invite.temporary || invite.expiresTimestamp),
+      memberCount: invite.memberCount ?? undefined,
+      lastUpdateTimestamp: Date.now(),
+    };
+  }
 }
 
 

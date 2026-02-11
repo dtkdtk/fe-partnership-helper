@@ -101,26 +101,26 @@ export namespace Log {
     export function messageOk(
       messageId: string,
       delegateId: string,
-      inviteCode: string
+      inviteCode: string,
+      isCached: boolean | null,
     ) {
-      const isCached = BotCache.has(`invite_by_code $$ ${inviteCode}`);
       logger.trace({ messageId, delegateId, inviteCode, isCached }, "GeneralScan: successful partnership, respect");
     }
     export function messageDelete(
       messageId: string,
       delegateId: string,
       errno: ConditionErrno,
-      inviteCode: string | null = null
+      inviteCode: string | null = null,
+      isCached: boolean | null = null,
     ) {
-      const isCached = inviteCode ? BotCache.has(`invite_by_code $$ ${inviteCode}`) : null;
       logger.trace({ messageId, delegateId, errno, inviteCode, isCached }, "GeneralScan: delete partnership");
     }
     export function ignoreUnfetched(
       messageId: string,
       delegateId: string,
-      inviteCode: string
+      inviteCode: string,
+      isCached: boolean | null,
     ) {
-      const isCached = BotCache.has(`invite_by_code $$ ${inviteCode}`);
       logger.trace({ messageId, delegateId, inviteCode, isCached }, "GeneralScan: ignore partnership with unfetched invite");
     }
     export function applyChanges(state: ResultState) {

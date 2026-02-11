@@ -1,5 +1,5 @@
 import eds from "@eds-fw/framework";
-import { Client, Invite, Message } from "discord.js";
+import { Client, Message } from "discord.js";
 import { ConfigEnv, MSK, resources } from "../../../corelib.js";
 import { DB_Misc, MessageInvites } from "../../../databases.js";
 import { incrementDelegateStats } from "../models/delegate_stats.js";
@@ -33,7 +33,7 @@ export async function scanPartnershipChannel(client: Client) {
 
     //Коллекция начинается с самых новых сообщений
     for (const msg of messages.values()) {
-      const invite = await validateConditions(msg, false, false);
+      const invite = await validateConditions(msg, { checkCooldown: false });
       if (invite === ConditionErrno.just_return) {
         await msg.delete().catch(() => {});
         continue;
@@ -47,7 +47,7 @@ export async function scanPartnershipChannel(client: Client) {
         Log.Scan.messageWrong(msg.id, msg.author.id, invite, needAlert);
         continue;
       }
-      else if (invite instanceof Invite && invite.guild) {
+      else if (invite.guild) {
         if (CheckedGuilds.has(invite.guild.id)) {
           await msg.delete().catch(() => {});
           Log.Scan.messageDuplicate(msg.id, msg.author.id);

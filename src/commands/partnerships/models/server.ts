@@ -1,7 +1,6 @@
-import { Invite } from "discord.js";
 import { updateDatedVal } from "../../../corelib.js";
 import { DB_Misc, DB_ServersData } from "../../../databases.js";
-import { ServerData } from "../types.js";
+import { AsceticInvite, ServerData } from "../types.js";
 
 
 export async function initServerData(
@@ -24,7 +23,7 @@ export async function initServerData(
   return success ? data : null;
 }
 
-export function initServerData_byInvite(invite: Invite, overrides?: Partial<ServerData>): Promise<ServerData | null> {
+export function initServerData_byInvite(invite: AsceticInvite, overrides?: Partial<ServerData>): Promise<ServerData | null> {
   if (!invite.guild) return Promise.resolve(null);
   return initServerData(
     invite.guild.id,
@@ -57,7 +56,7 @@ export async function updateServerData(
 }
 
 export function updateServerData_byInvite(
-  oldData: ServerData, invite: Invite, delegateId?: string, timestamp?: number
+  oldData: ServerData, invite: AsceticInvite, delegateId?: string, timestamp?: number
 ) {
   if (!invite.guild) return Promise.resolve(null);
   return updateServerData(oldData, invite.guild.name,

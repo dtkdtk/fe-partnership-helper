@@ -1,31 +1,29 @@
 import eds from "@eds-fw/framework";
-import { BaseMessageOptions, ButtonStyle, ComponentType, Invite, MessageActionRowComponentData, MessageFlags, SelectMenuDefaultValueType, TextInputStyle } from "discord.js";
+import { BaseMessageOptions, ButtonStyle, ComponentType, MessageActionRowComponentData, MessageFlags, SelectMenuDefaultValueType, TextInputStyle } from "discord.js";
 import { BotCache, checkPermission, DgPermissions, emoji, lastDatedVal, resources, tReply } from "../../corelib.js";
 import { addToBlacklist, getBlacklistData, removeFromBlacklist } from "./models/blacklist.js";
 import { getPartnerData } from "./models/partner.js";
 import { getServerData, updateServerData_byInvite } from "./models/server.js";
-import { fetchInvite } from "./services/check_conditions.js";
+import { extractInviteCodes, fetchInvite } from "./services/check_conditions.js";
 import { Log } from "./services/log.js";
 import { partnerMenuSource } from "./services/partner_management.js";
-import { ServerData } from "./types.js";
+import { AsceticInvite, ServerData } from "./types.js";
 
-
-type GuildInvite = (Invite & { guild: NonNullable<Invite["guild"]> });
 
 export default {
   async run(ctx) {
     const rawTarget = ctx.options.getString("target")!.trim();
     const isGuildId = /^\d+$/.test(rawTarget);
-    let targetGuildId: string, maybeInvite: GuildInvite | undefined;
+    let targetGuildId: string, maybeInvite: AsceticInvite | undefined;
     let partnershipDbData: ServerData | null;
     if (!isGuildId) {
-      const invite = await fetchInvite([rawTarget], ctx.client);
+      const invite = await fetchInvite(extractInviteCodes(rawTarget), ctx.client);
       if (typeof invite == "number" || !invite?.guild)
         return tReply.error(ctx, "Ошибка", "Сервер не распознан.");
       else {
         targetGuildId = invite.guild.id;
         partnershipDbData = await getServerData(targetGuildId);
-        maybeInvite = invite as GuildInvite;
+        maybeInvite = invite as AsceticInvite;
         if (partnershipDbData)
           updateServerData_byInvite(partnershipDbData, invite);
       }

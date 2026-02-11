@@ -13,15 +13,21 @@ import { Log } from "./services/log.js";
 export default {
   async run(ctx) {
     if (!ctx.inGuild() || ctx.guildId != ConfigEnv.GUILD_ID) return;
+    if (ctx.channelId == ConfigEnv.PARTNERSHIPS_CHANNEL_ID && ctx.author.bot && ctx.author.id != ctx.client.user.id) {
+      ctx.delete().catch(() => {});
+      return;
+    }
+
+    ///////
     const warnings = [];
     const minimalMembers = ConfigEnv.REQUIREMENT_MINIMAL_MEMBERS;
-    const invite = await validateConditions(ctx);
+    const invite = await validateConditions(ctx, { forceFetch: true });
     if (invite === 0) return;
     if (typeof invite == "number")
       return _sendError(ctx, invite);
     if (!invite.guild) return;
 
-    if (invite.temporary || invite.expiresTimestamp)
+    if (invite.temporary)
       warnings.push(`## ${resources.emoji.warning} **ВНИМАНИЕ! Ссылка временная. Попросите партнёра заменить её.**`);
     if (minimalMembers && invite.memberCount && invite.memberCount < minimalMembers)
       warnings.push(`## ${resources.emoji.warning} **ВНИМАНИЕ! На сервере нет [${minimalMembers}] участников.**`);
@@ -80,7 +86,7 @@ export default {
 ID: \`${invite.guild.id}\`
 Участников: \`${displayMembers}\`${resources.emoji.member}${displayPrevDelegate}${displayPrevPartner}${displayWarnings}`,
             thumbnail: {
-              url: invite.guild.iconURL() ?? resources.images.briefcase,
+              url: invite.guild.iconURL ?? resources.images.briefcase,
             },
             footer: {
               text: resources.default_footer.delete1h,
@@ -150,7 +156,7 @@ eds.createMenu(
       && !checkPermission(delegate, DgPermissions.managePartnerships)
     ) return noAccess(ctx);
   
-    const invite = await validateConditions(partnershipMsg, true);
+    const invite = await validateConditions(partnershipMsg, { justGetInvite: true });
     if (typeof invite === "number" || !invite.guild)
       return ctx.quickReply(true, "ERRNO_419", "Приглашение недействительно / не распознано.");
 

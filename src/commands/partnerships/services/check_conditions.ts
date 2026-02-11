@@ -34,7 +34,7 @@ export async function validateConditions(
   options?: {
     justGetInvite?: boolean,
     checkCooldown?: boolean,
-    forceFetch?: boolean,
+    forceCacheRefresh?: boolean,
   }
 ): Promise<ConditionErrno | AsceticInvite> {
   if (message.channelId != ConfigEnv.PARTNERSHIPS_CHANNEL_ID) return 0;
@@ -44,7 +44,7 @@ export async function validateConditions(
   const inviteMatches = extractInviteCodes(message.content);
   if (!inviteMatches?.length) return ConditionErrno.no_invite;
 
-  const fetchedInvite = await fetchInvite(inviteMatches, message.client, options?.forceFetch);
+  const fetchedInvite = await fetchInvite(inviteMatches, message.client, options?.forceCacheRefresh);
   if (typeof fetchedInvite == "number") return fetchedInvite;
   if (!fetchedInvite.guild) return ConditionErrno.unfetched_invite;
   if (fetchedInvite.guild.id == message.guildId) return ConditionErrno.this_server;
@@ -72,12 +72,15 @@ export function extractInviteCodes(wholeText: string): string[] {
 }
 
 export async function fetchInvite(
-  inviteCodes: string[], client: Client, forceFetch?: boolean
+  inviteCodes: string[], client: Client, forceCacheRefresh?: boolean
 ): Promise<ConditionErrno | AsceticInvite> {
   const rawFetchResults: (AsceticInvite | ConditionErrno)[] = [];
   for (const iCode of inviteCodes) {
     const maybeCached = await InvitesCache.get(iCode);
-    if (forceFetch || maybeCached === null)
+    const needToRefresh = forceCacheRefresh
+      && maybeCached && typeof maybeCached == "object"
+      && Date.now() - maybeCached.lastUpdateTimestamp > InvitesCache.ExpiryDuration;
+    if (needToRefresh || maybeCached === null)
       rawFetchResults.push(await Promise.race([
         client.fetchInvite(iCode)
           .then(invite => invite.guild ? AsceticInvite.from(invite as any) : ConditionErrno.unfetched_invite)

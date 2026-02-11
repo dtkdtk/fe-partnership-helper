@@ -98,6 +98,7 @@ export namespace Log {
     export function stopOnComplete() {
       logger.warn("GeneralScan: SUCCESSFULLY COMPLETED !!!");
     }
+
     export function messageOk(
       messageId: string,
       delegateId: string,
@@ -125,8 +126,14 @@ export namespace Log {
     }
     export function applyChanges(state: ResultState) {
       const { lastMessage } = state;
-      const statsChanges = Object.fromEntries(Array.from(state.stats.entries()));
+      const statsChanges = Object.fromEntries(Array.from(state.changesMap?.entries() ?? []));
       logger.trace({ lastMessage, statsChanges }, "GeneralScan: update state, apply changes");
+    }
+    export function mandatoryPause(adminId: string | null) {
+      logger.warn({ adminId }, "GeneralScan: mandatory pause");
+    }
+    export function mandatoryResume(adminId: string | null) {
+      logger.warn({ adminId }, "GeneralScan: mandatory resume");
     }
   }
 

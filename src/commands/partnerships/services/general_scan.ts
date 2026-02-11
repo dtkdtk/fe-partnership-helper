@@ -1,5 +1,5 @@
 import { eds } from "@eds-fw/framework";
-import { Client, FetchMessagesOptions, GuildTextBasedChannel } from "discord.js";
+import { Client, Collection, FetchMessagesOptions, GuildTextBasedChannel, Message } from "discord.js";
 import { ConfigEnv, DateRecord, DB_DelegationStats, DB_Misc, DB_ServersData, getDate, MiscDbData, MSK } from "../../../corelib.js";
 import { bulkUpdateDgStats } from "../models/delegate_stats.js";
 import { InvitesCache } from "../models/invites_cache.js";
@@ -8,24 +8,51 @@ import { ConditionErrno, extractInviteCodes, validateConditions } from "./check_
 import { Log } from "./log.js";
 
 
-const kStopOnRatelimit = Symbol();
-const kStopOnComplete = Symbol();
-const WAIT_AFTER_RATELIMIT = 10 * 60 * 1000; //10 минут
+const WAIT_AFTER_RATELIMIT = 10 * 60 * 1000;
+const FETCH_INTERVAL = Math.round((24 * 60 * 60 * 1000) / ConfigEnv.GENERAL_SCAN_DAILY_LIMIT);
 
 type StatsChangesMap = Map<string, DateRecord<number>>;
-export type ResultState = { lastMessage: string | undefined; stats: StatsChangesMap };
+export interface ResultState {
+  lastMessage: string | undefined;
+  changesMap: StatsChangesMap | undefined;
+  hasFetch: boolean;
+  rateLimited?: boolean;
+  scanFullyCompleted?: boolean;
+};
 
-let GeneralScanProcess: Promise<void> | undefined;
+let GeneralScanProcessStarted = false;
+let GeneralScanPaused = false;
+let FetchTimer: NodeJS.Timeout | null = null;
+
+let MessageQueue: Collection<string, Message> | undefined = undefined;
+let MessageIndex = 0;
+
+export function pauseGeneralScan(adminId?: string) {
+  if (FetchTimer) {
+    clearTimeout(FetchTimer);
+    FetchTimer = null;
+  }
+  GeneralScanPaused = true;
+  Log.GeneralScan.mandatoryPause(adminId ?? null);
+}
+
+export async function resumeGeneralScan(adminId?: string) {
+  GeneralScanPaused = false;
+  const miscDbRecord = await DB_Misc.findOneAsync({ _id: "1" });
+  performGeneralScan(eds.runtimeStorage.client, miscDbRecord);
+  Log.GeneralScan.mandatoryResume(adminId ?? null);
+}
 
 export async function runGeneralScan(client: Client) {
-  if (GeneralScanProcess) return;
+  if (GeneralScanProcessStarted) return;
   const miscDbRecord = await DB_Misc.findOneAsync({ _id: "1" });
   const isCompleted = miscDbRecord.is_general_scan_complete === true;
   if (isCompleted) {
     Log.GeneralScan.skipCuzCompleted();
     return;
   }
-  GeneralScanProcess = performGeneralScan(client, miscDbRecord);
+  GeneralScanProcessStarted = true;
+  performGeneralScan(client, miscDbRecord);
 }
 
 async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
@@ -34,52 +61,76 @@ async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
   if (!channel?.isTextBased()) return;
 
   Log.GeneralScan.begin();
-  let result, lastMessage = miscDbRecord.last_general_scan_message, alreadyRatelimited = false;
-  while (true) {
+  let result, lastMessage = miscDbRecord.last_general_scan_message;
+  
+  const delayedExecutor = async (): Promise<void> => {
+    if (GeneralScanPaused) return;
     result = await scanChannel(channel, lastMessage);
-    if (result === kStopOnRatelimit) {
-      Log.GeneralScan.stopOnRatelimit(alreadyRatelimited ? WAIT_AFTER_RATELIMIT : null);
-      alreadyRatelimited = true;
-      if (alreadyRatelimited) await eds.wait(WAIT_AFTER_RATELIMIT);
-      continue;
-    }
-    else if (result === kStopOnComplete) {
-      Log.GeneralScan.stopOnComplete();
-      break;
-    }
-
     lastMessage = result.lastMessage;
     Log.GeneralScan.applyChanges(result);
     await dbApply(result);
-  }
+    if (result.rateLimited) {
+      Log.GeneralScan.stopOnRatelimit(WAIT_AFTER_RATELIMIT);
+      await eds.wait(WAIT_AFTER_RATELIMIT);
+      return delayedExecutor();
+    }
+    else if (result.scanFullyCompleted) {
+      Log.GeneralScan.stopOnComplete();
+      await DB_Misc.updateAsync({ _id: "1" }, { $set: { is_general_scan_complete: true } });
+    }
 
-  if (result === kStopOnComplete)
-    await DB_Misc.updateAsync({ _id: "1" }, { $set: { is_general_scan_complete: true } });
+    if (FetchTimer) clearTimeout(FetchTimer);
+    FetchTimer = setTimeout(delayedExecutor, FETCH_INTERVAL);
+  };
+    
 }
 
-async function scanChannel(
-  channel: GuildTextBasedChannel, lastScannedMsg?: string
-): Promise<ResultState | typeof kStopOnRatelimit | typeof kStopOnComplete> {
+async function scanChannel(channel: GuildTextBasedChannel, lastMessage?: string): Promise<ResultState> {
+  let hasFetch = false;
   const changesMap: StatsChangesMap = new Map();
   const fetchOptions: FetchMessagesOptions = { limit: 100, cache: false };
-  if (lastScannedMsg) fetchOptions.before = lastScannedMsg;
+  if (lastMessage) fetchOptions.before = lastMessage;
 
-  const messages = await Promise.race([
-    channel.messages.fetch(fetchOptions).catch(() => null),
-    eds.wait(3_000).then(() => null)
-  ]);
-  if (messages === null) return kStopOnRatelimit;
-  if (messages.size === 0) return kStopOnComplete;
-  messages.sort((A, B) => B.createdTimestamp - A.createdTimestamp); //Начинаем с новых
+  if (!MessageQueue || MessageIndex == MessageQueue.size) {
+    MessageQueue = undefined;
+    const _messages = await Promise.race([
+      channel.messages.fetch(fetchOptions).catch(() => null),
+      eds.wait(3_000).then(() => null)
+    ]);
+    if (_messages === null)
+      return {
+        rateLimited: true,
+        hasFetch, lastMessage,
+        changesMap: undefined,
+      };
+    if (_messages.size === 0)
+      return {
+        scanFullyCompleted: true,
+        hasFetch, lastMessage,
+        changesMap: undefined,
+      };
+    _messages.sort((A, B) => B.createdTimestamp - A.createdTimestamp);
+    MessageQueue = _messages;
+  }
 
-  for (const msg of messages.values()) {
+  for (; MessageIndex < MessageQueue.size; MessageIndex++) {
+    if (GeneralScanPaused)
+      return {
+        scanFullyCompleted: true,
+        hasFetch, lastMessage, changesMap,
+      };
+    const msg = MessageQueue.at(MessageIndex)!;
+    
     const inviteCode = extractInviteCodes(msg.content)[0];
     const isCached = inviteCode ? (await InvitesCache.get(inviteCode)) !== null : null;
+    
     const invite = await validateConditions(msg, { justGetInvite: true, checkCooldown: false });
     const date = getDate(MSK(msg.createdTimestamp));
-    if (invite === ConditionErrno.rate_limit) {
-      return kStopOnRatelimit;
-    }
+    if (invite === ConditionErrno.rate_limit)
+      return {
+        rateLimited: true,
+        hasFetch, lastMessage, changesMap,
+      };
     else if (invite === ConditionErrno.just_return
       || invite === ConditionErrno.no_invite
       || invite === ConditionErrno.this_server
@@ -106,23 +157,31 @@ async function scanChannel(
         message_id: msg.id,
       });
     }
+    
     if (!changesMap.has(msg.author.id)) changesMap.set(msg.author.id, {});
     const userChanges = changesMap.get(msg.author.id)!;
     userChanges[date] = (userChanges[date] ?? 0) + 1;
     changesMap.set(msg.author.id, userChanges);
-    lastScannedMsg = msg.id;
+    lastMessage = msg.id;
     Log.GeneralScan.messageOk(msg.id, msg.author.id, inviteCode, isCached);
+    if (!isCached) {
+      hasFetch = true;
+      break;
+    }
     await eds.wait(1000);
   }
-  return { lastMessage: lastScannedMsg, stats: changesMap };
+  return {
+    hasFetch, lastMessage, changesMap,
+  };
 }
 
 async function dbApply(updated: ResultState) {
   const updatePromises: Promise<unknown>[] = [];
   if (updated.lastMessage)
     updatePromises.push(DB_Misc.updateAsync({ _id: "1" }, { $set: { last_general_scan_message: updated.lastMessage } }));
-  for (const [id, dateRec] of updated.stats.entries())
-    updatePromises.push(bulkUpdateDgStats(id, dateRec));
+  if (updated.changesMap)
+    for (const [id, dateRec] of updated.changesMap.entries())
+      updatePromises.push(bulkUpdateDgStats(id, dateRec));
   await Promise.all(updatePromises);
   DB_ServersData.compactDatafile();
   DB_DelegationStats.compactDatafile();

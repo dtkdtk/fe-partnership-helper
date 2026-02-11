@@ -1,5 +1,5 @@
 import { DateRecord, getDate, MSK } from "../../../corelib.js";
-import { DB_DelegationStats, type OmitId } from "../../../databases.js";
+import { DB_DelegationStats, DB_Misc, type OmitId } from "../../../databases.js";
 import { DelegateStats } from "../types.js";
 
 
@@ -42,9 +42,15 @@ export async function decrementDelegateStats(userId: string, partnershipTimestam
   return _updateDelegateStats(userId, partnershipTimestamp, -1);
 }
 
+/**
+ * Специально для сканов канала партнёрств.
+ * Единственная функция, которая обрабатывает `MiscDbData.no_total_delegates`.
+ */
 export async function bulkUpdateDgStats(
   userId: string, datedDiff: DateRecord<number>
 ): Promise<DelegateStats> {
+  const miscDbData = await DB_Misc.findOneAsync({ _id: "1" });
+  const noTotalDelegates = miscDbData.no_total_delegates;
   let applyFn: (stats: OmitId<DelegateStats>) => Promise<unknown>;
   let stats = await DB_DelegationStats.findOneAsync({ _id: userId });
   if (stats === null)
@@ -55,7 +61,7 @@ export async function bulkUpdateDgStats(
 
   for (const [date, count] of Object.entries(datedDiff)) {
     stats.activity[date] = (stats.activity[date] ?? 0) + count;
-    stats.total_partnerships += count;
+    if (!noTotalDelegates.includes(userId)) stats.total_partnerships += count;
   }
   await applyFn(stats);
   return stats;

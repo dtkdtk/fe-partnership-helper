@@ -65,6 +65,9 @@ function _getValidEnv() {
   env.PARTNER_ALERTS_BATCH_DURATION = "PARTNER_ALERTS_BATCH_DURATION" in env
     ? _strictCast.integer(env.PARTNER_ALERTS_BATCH_DURATION)
     : 60;
+  env.GENERAL_SCAN_DAILY_LIMIT = "GENERAL_SCAN_DAILY_LIMIT" in env
+    ? _strictCast.integer(env.GENERAL_SCAN_DAILY_LIMIT)
+    : 300;
   env.LOGS_LIFE_DURATION = "LOGS_LIFE_DURATION" in env
     ? _strictCast.integer(env.LOGS_LIFE_DURATION)
     : 30;
@@ -95,6 +98,10 @@ function _getValidEnv() {
   assert(
     env.GENERAL_SCAN_UNFETCHED_STRATEGY !== null,
     "Указано некорректное значение для GENERAL_SCAN_UNFETCHED_STRATEGY. Принимается DELETE, IGNORE и COUNT"
+  );
+  assert(
+    env.GENERAL_SCAN_DAILY_LIMIT !== null,
+    "Указано некорректное значение для GENERAL_SCAN_DAILY_LIMIT. Принимаются целые числа"
   );
   assert(
     env.BOT_SECRET_TOKEN !== undefined,

@@ -9,6 +9,8 @@ export interface MiscDbData {
   last_scanned_message?: string;
   last_general_scan_message?: string;
   is_general_scan_complete?: boolean;
+  /** delegates with mandatory `total_partnerships` */
+  no_total_delegates: string[];
 }
 
 export const DB_DelegationStats = new Datastore<DelegateStats>({
@@ -44,7 +46,7 @@ export const DB_InvitesCache = new Datastore<AsceticInvite | {}>({
 
 DB_Misc.find({ _id: "1" }, {}, (err, data) => {
   if (err) console.error(err);
-  if (!data?.length) DB_Misc.insert({ _id: "1" });
+  if (!data?.length) DB_Misc.insert({ _id: "1", no_total_delegates: [] });
 });
 
 export const BotCache = new NodeCache({ stdTTL: 3 * 24 * 60 * 60 });

@@ -21,7 +21,7 @@ export default {
     ///////
     const warnings = [];
     const minimalMembers = ConfigEnv.REQUIREMENT_MINIMAL_MEMBERS;
-    const invite = await validateConditions(ctx, { forceFetch: true });
+    const invite = await validateConditions(ctx, { forceCacheRefresh: true });
     if (invite === 0) return;
     if (typeof invite == "number")
       return _sendError(ctx, invite);

@@ -3,6 +3,7 @@ import { AsceticInvite } from "../types.js";
 
 export namespace InvitesCache {
   export const Unfetched = Symbol();
+  export const ExpiryDuration = 24 * 60 * 60 * 1000; //24 часа
 
   export async function get(inviteCode: string): Promise<AsceticInvite | null | typeof Unfetched> {
     const data = await DB_InvitesCache.findOneAsync({ _id: inviteCode });

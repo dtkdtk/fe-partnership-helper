@@ -1,6 +1,6 @@
 import eds, { CommandContext } from "@eds-fw/framework";
 import { ComponentType, SelectMenuDefaultValueType } from "discord.js";
-import { BotCache, checkPermission, ConfigEnv, DgPermissions, getDate, lastDatedVal, MessageInvites, MSK, noAccess, resources } from "../../corelib.js";
+import { BotCache, checkPermission, ConfigEnv, CoreLog, DgPermissions, getDate, lastDatedVal, MessageInvites, MSK, noAccess, resources } from "../../corelib.js";
 import { getDelegateStats, incrementDelegateStats, initDelegateStats } from "./models/delegate_stats.js";
 import { getServerData, initServerData_byInvite, markAsLatest, updateServerData_byInvite } from "./models/server.js";
 import { DelegateAlerts } from "./services/alerts.js";
@@ -115,12 +115,12 @@ ID: \`${invite.guild.id}\`
           },
         ],
       })
-      .catch(console.error);
+      .catch(() => CoreLog.missingPermission("SEND_MESSAGES", { channelId: ctx.channelId }));
     Log.Listen.messageOk(ctx.id, ctx.author.id);
-    ctx.react(resources.button_icons.yes).catch(console.error);
+    ctx.react(resources.button_icons.yes).catch(() => {});
     if (!reply) return;
 
-    setTimeout(() => reply.delete().catch(console.error), 60 * 60 * 1000); //час
+    setTimeout(() => reply.delete().catch(() => {}), 60 * 60 * 1000); //час
   },
 
   info: {

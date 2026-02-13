@@ -1,6 +1,6 @@
 import eds from "@eds-fw/framework";
 import { Client, Message } from "discord.js";
-import { ConfigEnv, MSK, resources } from "../../../corelib.js";
+import { ConfigEnv, CoreLog, MSK, resources } from "../../../corelib.js";
 import { DB_Misc, MessageInvites } from "../../../databases.js";
 import { incrementDelegateStats } from "../models/delegate_stats.js";
 import { getServerData, initServerData_byInvite, markAsLatest, updateServerData_byInvite } from "../models/server.js";
@@ -35,7 +35,7 @@ export async function scanPartnershipChannel(client: Client) {
     for (const msg of messages.values()) {
       const invite = await validateConditions(msg, { checkCooldown: false });
       if (invite === ConditionErrno.just_return) {
-        await msg.delete().catch(() => {});
+        await msg.delete().catch(() => CoreLog.missingPermission("MANAGE_MESSAGES", { channelId: msg.channelId }));
         continue;
       }
       if (msg.id == lastScannedMessageId) return false;
@@ -49,7 +49,7 @@ export async function scanPartnershipChannel(client: Client) {
       }
       else if (invite.guild) {
         if (CheckedGuilds.has(invite.guild.id)) {
-          await msg.delete().catch(() => {});
+          await msg.delete().catch(() => CoreLog.missingPermission("MANAGE_MESSAGES", { channelId: msg.channelId }));
           Log.Scan.messageDuplicate(msg.id, msg.author.id);
           continue;
         }
@@ -95,6 +95,6 @@ export async function scanPartnershipChannel(client: Client) {
 
 function deferReaction(message: Message) {
   ReactionsQueue.push(async () => {
-    await message.react(resources.button_icons.yes).catch(console.error);
+    await message.react(resources.button_icons.yes).catch(() => {});
   });
 }

@@ -102,7 +102,7 @@ async function _resolvePartner(
   let isAlreadyPartner = false;
   if (ConfigEnv.PARTNER_ROLE_ID) {
     if (!eds.hasRole(partner)(ConfigEnv.PARTNER_ROLE_ID))
-      partner.roles.add(ConfigEnv.PARTNER_ROLE_ID).catch(console.error);
+      partner.roles.add(ConfigEnv.PARTNER_ROLE_ID).catch(() => {});
     else
       isAlreadyPartner = true;
   }

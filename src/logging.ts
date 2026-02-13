@@ -27,6 +27,30 @@ export const logger = pino({
   },
 });
 
+export namespace CoreLog {
+  export function startup() {
+    logger.info("Startup");
+  }
+  export function ready() {
+    logger.info("Ready to work");
+  }
+  export function rateLimitLocal(limitOptions: object) {
+    logger.trace(limitOptions, "Bot is locally rate-limited");
+  }
+  export function rateLimitGlobal(limitOptions: object) {
+    logger.error(limitOptions, "Bot is GLOBALLY rate-limited");
+  }
+  export function missingPermission(
+    action: "SEND_MESSAGES" | "MANAGE_MESSAGES",
+    context: { channelId?: string }
+  ) {
+    logger.error(context, `Cannot ${action} (no permission); please grant the permission`);
+  }
+  export function unexpectedError(error: object) {
+    logger.error(error, "An unexpected error occurred");
+  }
+}
+
 function cleanOldLogs() {
   let files;
   try { files = fs.readdirSync(LOGS_DIR) }

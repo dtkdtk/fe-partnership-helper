@@ -76,7 +76,7 @@ export default {
 
     const msg = await createMessage(ctx, ActivityTypes.TODAY);
     await lazyDefer;
-    ctx.followUp(msg).catch(console.error);
+    ctx.followUp(msg).catch(() => {});
   },
 
   info: {
@@ -261,7 +261,7 @@ eds.createButton({ custom_id: "delegation-stats.mode.today" },
     const msg = await createMessage(ctx, ActivityTypes.TODAY);
     if ("flags" in msg) delete msg.flags;
     await lazyDefer;
-    ctx.editReply(msg).catch(console.error);
+    ctx.editReply(msg).catch(() => {});
   }
 );
 
@@ -275,6 +275,6 @@ eds.createButton({ custom_id: "delegation-stats.mode.two_weeks" },
     const msg = await createMessage(ctx, ActivityTypes.TWO_WEEKS);
     if ("flags" in msg) delete msg.flags;
     await lazyDefer;
-    ctx.editReply(msg).catch(console.error);
+    ctx.editReply(msg).catch(() => {});
   }
 );

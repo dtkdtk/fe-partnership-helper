@@ -1,6 +1,6 @@
 import eds from "@eds-fw/framework";
 import { onPartnershipDelete } from "./commands/partnerships/services/handle_delete.js";
-import { _ErrorActionFn, _initErrorAction, ConfigEnv, logger, MSK } from "./corelib.js";
+import { _ErrorActionFn, _initErrorAction, ConfigEnv, CoreLog, MSK } from "./corelib.js";
 import { createSlashCommands } from "./slashCommands.js";
 
 
@@ -19,26 +19,26 @@ export default function initEventListeners(bot: eds.KnownRuntimeProperties) {
       case "moderate":
         channel.send(
           `⚠ Ошибка: \`${E.message}\``
-        ).catch(console.error);
+        ).catch(() => CoreLog.missingPermission("SEND_MESSAGES", { channelId: channel.id }));
         break;
       case "unexpected":
         channel.send(
           `⚠ Бот схватил ошибку! Такого быть не должно. Продублирую её и в консоль. \`\`\`js\n${E.message}\n\nStack:\n${E.stack}\`\`\`\n\n❗❗❗ **Пожалуйста, сообщите разработчику оригинального бота об этой неисправности. Discord: \`@dtkdtk0\`**`
-        ).catch(console.error);
+        ).catch(() => CoreLog.missingPermission("SEND_MESSAGES", { channelId: channel.id }));
         break;
       case "critical":
         channel.send(
           `⚠ Бот КРАШНУЛСЯ из-за ошибки! Такого быть не должно. Продублирую ошибку в консоль. \`\`\`js\n${E.message}\n\nStack:\n${E.stack}\`\`\`\n\n❗❗❗ **Пожалуйста, сообщите разработчику оригинального бота об этой неисправности. Discord: \`@dtkdtk0\`**`
-        ).catch(console.error);
+        ).catch(() => CoreLog.missingPermission("SEND_MESSAGES", { channelId: channel.id }));
         break;
     }
   }
 
   bot.client.rest.on("rateLimited", async (E) => {
     if (E.global)
-      logger.error(E, "Bot is GLOBALLY rate-limited")
+      CoreLog.rateLimitGlobal(E);
     else
-      logger.trace(E, "Bot is locally rate-limited");
+      CoreLog.rateLimitLocal(E);
     if (E.global) 
       console.error(
         "(КРИТИЧЕСКИ) БОТ ДОСТИГ РЕЙТ-ЛИМИТА DISCORD И БЫЛ ПРИОСТАНОВЛЕН ДО %s\nЗапрос: %s",
@@ -63,7 +63,7 @@ export default function initEventListeners(bot: eds.KnownRuntimeProperties) {
   });
 
   bot.client.once("clientReady", async () => {
-    logger.info("Ready to work");
+    CoreLog.ready();
     createSlashCommands(eds.runtimeStorage);
     console.log("Делай со мной всё, что хочешь - я готов ко всему.");
     const guild = await eds.sfGuild(bot.client.guilds, ConfigEnv.GUILD_ID);

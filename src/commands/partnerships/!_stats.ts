@@ -47,7 +47,7 @@ export default {
     };
 
     await lazyDefer;
-    ctx.followUp(msg).catch(console.error);
+    ctx.followUp(msg).catch(() => {});
   },
 
   info: {

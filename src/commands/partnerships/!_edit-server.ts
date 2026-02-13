@@ -1,6 +1,6 @@
 import eds from "@eds-fw/framework";
 import { BaseMessageOptions, ButtonStyle, ComponentType, MessageActionRowComponentData, MessageFlags, SelectMenuDefaultValueType, TextInputStyle } from "discord.js";
-import { BotCache, checkPermission, DgPermissions, emoji, lastDatedVal, resources, tReply } from "../../corelib.js";
+import { BotCache, checkPermission, CoreLog, DgPermissions, emoji, lastDatedVal, resources, tReply } from "../../corelib.js";
 import { addToBlacklist, getBlacklistData, removeFromBlacklist } from "./models/blacklist.js";
 import { getPartnerData } from "./models/partner.js";
 import { getServerData, updateServerData_byInvite } from "./models/server.js";
@@ -145,7 +145,7 @@ export default {
         ],
         components,
       })
-      .catch(console.error);
+      .catch(CoreLog.unexpectedError);
     if (!reply) return;
     const msgId = reply.interaction.responseMessageId;
 
@@ -221,7 +221,7 @@ eds.createButton(
           },
         ],
       })
-      .catch(console.error);
+      .catch(CoreLog.unexpectedError);
   }
 );
 eds.createButton(
@@ -235,7 +235,7 @@ eds.createButton(
         embeds: [],
         components: [],
       })
-      .catch(console.error);
+      .catch(CoreLog.unexpectedError);
   }
 );
 eds.createButton(
@@ -263,7 +263,7 @@ eds.createButton(
           },
         ],
       })
-      .catch(console.error);
+      .catch(CoreLog.unexpectedError);
   }
 );
 eds.createModal(
@@ -290,7 +290,7 @@ eds.createModal(
           ],
           components: [],
         })
-        .catch(console.error);
+        .catch(CoreLog.unexpectedError);
 
     await addToBlacklist(targetGuildId, reason, ctx.user.id);
     Log.EditServer.addBlacklist(targetGuildId, ctx.user.id, reason);
@@ -340,7 +340,7 @@ eds.createButton(
           },
         ],
       })
-      .catch(console.error);
+      .catch(CoreLog.unexpectedError);
   }
 );
 eds.createButton(
@@ -354,7 +354,7 @@ eds.createButton(
         embeds: [],
         components: [],
       })
-      .catch(console.error);
+      .catch(CoreLog.unexpectedError);
   }
 );
 eds.createButton(
@@ -377,7 +377,7 @@ eds.createButton(
         ],
         components: [],
       })
-      .catch(console.error);
+      .catch(CoreLog.unexpectedError);
 
     await removeFromBlacklist(targetGuildId);
     Log.EditServer.removeBlacklist(targetGuildId, ctx.user.id);

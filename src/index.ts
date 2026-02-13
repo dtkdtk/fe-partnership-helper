@@ -4,10 +4,10 @@ import "./databases.js";
 import eds from "@eds-fw/framework";
 import { registerFont } from "canvas";
 import { botConfig } from "./bot_config.js";
-import { resources, logger } from "./corelib.js";
+import { CoreLog, resources } from "./corelib.js";
 import initEventListeners from "./events.js";
 
-logger.info("Startup");
+CoreLog.startup();
 registerFont("./assets/Abibas.ttf", {
   family: "abibas",
 });

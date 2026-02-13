@@ -2,13 +2,13 @@ import eds from "@eds-fw/framework";
 import type { Canvas } from "canvas";
 import { randomUUID } from "crypto";
 import { AttachmentBuilder, InteractionReplyOptions, MessageFlags } from "discord.js";
-import { checkPermission, DB_DelegationStats, DgPermissions, get14dates, getDate, MSK, noAccess, resources } from "../../corelib.js";
+import { checkPermission, CoreLog, DgPermissions, get14dates, getDate, MSK, noAccess, resources } from "../../corelib.js";
 import { createChart } from "./chart.js";
+import { getDelegateStats } from "./models/delegate_stats.js";
 
 
 export default {
   async run(ctx) {
-    const lazyDefer = ctx.deferReply({ flags: MessageFlags.Ephemeral });
     const user = ctx.options.getUser("user") ?? ctx.user;
 
     if (user.id != ctx.user.id
@@ -17,6 +17,7 @@ export default {
       return noAccess(ctx);
     }
 
+    const lazyDefer = ctx.deferReply({ flags: [MessageFlags.Ephemeral] }).catch(CoreLog.unexpectedError);
     const attKey = "delegate-stats-chart-" + randomUUID() + ".png";
     const {text, chart} = await getStatsDisplay(user?.id ?? ctx.user.id);
 
@@ -25,7 +26,6 @@ export default {
     ).setName(attKey);
 
     const msg: InteractionReplyOptions = {
-      flags: [MessageFlags.Ephemeral],
       embeds: [
         {
           author: {
@@ -47,7 +47,7 @@ export default {
     };
 
     await lazyDefer;
-    ctx.followUp(msg).catch(() => {});
+    ctx.followUp(msg).catch(CoreLog.unexpectedError);
   },
 
   info: {
@@ -58,16 +58,24 @@ export default {
 } satisfies eds.CommandFile<"slash">;
 
 
-async function getStatsDisplay(user: string): Promise<{ text: string, chart: Canvas }> {
-  const data = (await DB_DelegationStats.findOneAsync({ _id: user })) ?? {};
+async function getStatsDisplay(userId: string): Promise<{ text: string, chart: Canvas }> {
+  let numbers, totalPartnerships, todayPartnerships;
+  const data = await getDelegateStats(userId);
   const dates = get14dates().toReversed();
-  const numbers = dates
-    .map((date) => data?.activity[date] ?? 0)
-    .map((num) => (num < 0 ? 0 : num));
-  const chart = createChart(numbers, dates);
+  if (data) {
+    numbers = dates
+      .map((D) => data.activity[D] ?? 0)
+      .map((num) => (num < 0 ? 0 : num));
+    totalPartnerships = data.total_partnerships;
+    todayPartnerships = data.activity[getDate(MSK())];
+  }
+  else {
+    numbers = Array(14).fill(0);
+    totalPartnerships = 0;
+    todayPartnerships = 0;
+  }
 
-  const totalPartnerships = data.total_partnerships ?? 0;
-  const todayPartnerships = data.activity?.[getDate(MSK())] ?? 0;
+  const chart = createChart(numbers, dates);
   const text = `\n\n**Заключено партнёрств:**\nЗа всё время: \`${totalPartnerships}\`\n`
     + `За сегодня: \`${todayPartnerships}\`\n\n**Активность за 2 недели:**`;
 

@@ -1,13 +1,11 @@
 import { eds } from "@eds-fw/framework";
-import moment from "moment";
 import {
   checkPermission,
   ConfigEnv,
   CoreLog,
   DgPermissions,
   logger,
-  MSK,
-  noAccess,
+  noAccess
 } from "../corelib.js";
 import { BotCache, DB_DelegationStats, DB_Misc } from "../databases.js";
 import {
@@ -22,24 +20,6 @@ import {
 
 namespace Log {
   export namespace System {
-    let StartTime: moment.Moment;
-
-    export function start() {
-      StartTime = MSK();
-      logger.info("CmdSystem: command invoked");
-    }
-
-    export function end() {
-      const now = MSK();
-      const diff = moment.duration(now.diff(StartTime));
-      const displayDiff =
-        (diff.hours() ? diff.hours() + " hr " : "") +
-        (diff.minutes() ? diff.minutes() + " min " : "") +
-        diff.seconds() +
-        " sec.";
-      logger.info("CmdSystem: completed. Took %s", displayDiff);
-    }
-
     export function subcommand(sub: string, userId: string, args: string[]) {
       logger.info(
         { subcommand: sub, userId, args },
@@ -217,10 +197,8 @@ async function scmPartnerships(ctx: eds.TextContext) {
 
 export default {
   async run(ctx) {
-    Log.System.start();
     if (!checkPermission(ctx.member, DgPermissions.admin)) {
       Log.System.error("permission", "Access denied");
-      Log.System.end();
       return noAccess(ctx);
     }
 
@@ -283,7 +261,6 @@ export default {
           )
           .catch(CoreLog.unexpectedError);
     }
-    Log.System.end();
   },
 
   info: {

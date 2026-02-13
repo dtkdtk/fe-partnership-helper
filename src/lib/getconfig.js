@@ -140,12 +140,12 @@ function _getValidEnv() {
         ", в настройке прав роли. Полное имя переменной: " +
         key
     );
-    env.ROLE_PERMISSIONS[key] = 0;
+    env.ROLE_PERMISSIONS[id] = 0;
     const perms = env[key].replaceAll(" ", "").split(",");
     for (const pm of perms) {
       assert(pm in _permissionMapping, "Право " + pm + " не найдено");
       const real = _permissionMapping[pm];
-      env.ROLE_PERMISSIONS[key] |= real;
+      env.ROLE_PERMISSIONS[id] |= real;
     }
   }
   return env;

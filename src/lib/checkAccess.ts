@@ -10,7 +10,12 @@ export function checkPermission(
   permission: DgPermissions
 ): boolean {
   if (member === null) return false;
-  if (typeof member.permissions === "string" && (BigInt(member.permissions) & _permAdmin)) return true;
+  if (typeof member.permissions === "string"
+    && (BigInt(member.permissions) & _permAdmin)
+    || ConfigEnv.ADMIN_ID_LIST.includes(member.user.id)
+  ) {
+    return true;
+  }
   else if (typeof member.permissions !== "string" && member.permissions.has(_permAdmin)) return true;
   const roles = Object.keys(ConfigEnv.ROLE_PERMISSIONS);
   let result: DgPermissions = DgPermissions._no;

@@ -12,6 +12,7 @@ import {
 } from "discord.js";
 import {
   checkPermission,
+  CoreLog,
   DB_DelegationStats,
   DgPermissions,
   emoji,
@@ -68,15 +69,14 @@ enum ActivityTypes {
 
 export default {
   async run(ctx) {
-    const lazyDefer = ctx.deferReply({ flags: [MessageFlags.Ephemeral] });
-    
     if (!checkPermission(ctx.member, DgPermissions.viewDepartmentStats)) {
       return noAccess(ctx);
     }
 
+    const lazyDefer = ctx.deferReply({ flags: [MessageFlags.Ephemeral] }).catch(CoreLog.unexpectedError);
     const msg = await createMessage(ctx, ActivityTypes.TODAY);
     await lazyDefer;
-    ctx.followUp(msg).catch(() => {});
+    ctx.followUp(msg).catch(CoreLog.unexpectedError);
   },
 
   info: {

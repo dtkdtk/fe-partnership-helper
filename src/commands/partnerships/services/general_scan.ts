@@ -177,7 +177,10 @@ async function scanChannel(channel: GuildTextBasedChannel, lastMessage?: string)
   };
 }
 
+let PreviousData: ResultState | undefined;
+
 async function dbApply(updated: ResultState) {
+  if (!updated.changesMap?.size && updated.lastMessage == PreviousData?.lastMessage) return;
   const updatePromises: Promise<unknown>[] = [];
   if (updated.lastMessage)
     updatePromises.push(DB_Misc.updateAsync({ _id: "1" }, { $set: { last_general_scan_message: updated.lastMessage } }));
@@ -185,6 +188,7 @@ async function dbApply(updated: ResultState) {
     for (const [id, dateRec] of updated.changesMap.entries())
       updatePromises.push(bulkUpdateDgStats(id, dateRec));
   await Promise.all(updatePromises);
+  PreviousData = updated;
   DB_ServersData.compactDatafile();
   DB_DelegationStats.compactDatafile();
   DB_Misc.compactDatafile();

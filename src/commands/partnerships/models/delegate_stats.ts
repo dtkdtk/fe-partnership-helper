@@ -10,12 +10,14 @@ const defaultDelegateStats = (userId: string) => ({
 });
 
 export async function initDelegateStats(userId: string, overrides?: Partial<DelegateStats>) {
-  await DB_DelegationStats.insertAsync({
+  const data: DelegateStats = {
     _id: userId,
     activity: {},
     total_partnerships: 0,
     ...overrides,
-  });
+  };
+  const success = Boolean(await DB_DelegationStats.insertAsync(data).catch(() => false));
+    return success ? data : null;
 }
 
 export function getDelegateStats(userId: string): Promise<DelegateStats | null> {

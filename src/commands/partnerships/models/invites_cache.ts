@@ -12,9 +12,9 @@ export namespace InvitesCache {
     else return Unfetched;
   }
   export function set(data: AsceticInvite) {
-    return DB_InvitesCache.insertAsync({ ...data });
+    return DB_InvitesCache.insertAsync({ ...data }).catch(() => null);
   }
   export function setUnfetched(inviteCode: string) {
-    return DB_InvitesCache.insertAsync({ _id: inviteCode });
+    return DB_InvitesCache.insertAsync({ _id: inviteCode }).catch(() => null);
   }
 } 

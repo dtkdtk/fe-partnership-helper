@@ -83,7 +83,7 @@ export async function fetchInvite(
     if (needToRefresh || maybeCached === null)
       rawFetchResults.push(await Promise.race([
         client.fetchInvite(iCode)
-          .then(invite => invite.guild ? AsceticInvite.from(invite as any) : ConditionErrno.unfetched_invite)
+          .then(invite => invite.guild ? AsceticInvite.from(invite) : ConditionErrno.unfetched_invite)
           .catch(() => (InvitesCache.setUnfetched(iCode), ConditionErrno.unfetched_invite)),
         wait(5_000).then(() => ConditionErrno.rate_limit),
       ]));
@@ -97,6 +97,7 @@ export async function fetchInvite(
     ?? ConditionErrno.unfetched_invite;
   
   const invitesFetched = (cleanFetchResults as AsceticInvite[]);
+  invitesFetched.forEach(InvitesCache.set);
   if (
     invitesFetched.filter(
       (x, i) => x.guild.id != invitesFetched.at(i - 1)?.guild.id

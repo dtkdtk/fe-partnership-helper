@@ -9,7 +9,7 @@ import { Log } from "./log.js";
 
 
 const WAIT_AFTER_RATELIMIT = 10 * 60 * 1000;
-const FETCH_INTERVAL = Math.round((24 * 60 * 60 * 1000) / ConfigEnv.GENERAL_SCAN_DAILY_LIMIT);
+const FETCH_INTERVAL = Math.round((24 * 60 * 60 * 1000) / (ConfigEnv.GENERAL_SCAN_DAILY_LIMIT * 100));
 
 type StatsChangesMap = Map<string, DateRecord<number>>;
 export interface ResultState {
@@ -77,12 +77,13 @@ async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
     else if (result.scanFullyCompleted) {
       Log.GeneralScan.stopOnComplete();
       await DB_Misc.updateAsync({ _id: "1" }, { $set: { is_general_scan_complete: true } });
+      return;
     }
 
     if (FetchTimer) clearTimeout(FetchTimer);
     FetchTimer = setTimeout(delayedExecutor, FETCH_INTERVAL);
   };
-    
+  delayedExecutor();
 }
 
 async function scanChannel(channel: GuildTextBasedChannel, lastMessage?: string): Promise<ResultState> {
@@ -113,13 +114,14 @@ async function scanChannel(channel: GuildTextBasedChannel, lastMessage?: string)
     MessageQueue = _messages;
   }
 
-  for (; MessageIndex < MessageQueue.size; MessageIndex++) {
+  for (; MessageIndex < MessageQueue.size;) {
     if (GeneralScanPaused)
       return {
         scanFullyCompleted: true,
         hasFetch, lastMessage, changesMap,
       };
     const msg = MessageQueue.at(MessageIndex)!;
+    MessageIndex++;
     
     const inviteCode = extractInviteCodes(msg.content)[0];
     const isCached = inviteCode ? (await InvitesCache.get(inviteCode)) !== null : null;
@@ -185,4 +187,5 @@ async function dbApply(updated: ResultState) {
   await Promise.all(updatePromises);
   DB_ServersData.compactDatafile();
   DB_DelegationStats.compactDatafile();
+  DB_Misc.compactDatafile();
 }

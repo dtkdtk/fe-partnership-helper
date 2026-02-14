@@ -9,7 +9,7 @@ import { Log } from "./log.js";
 
 
 const WAIT_AFTER_RATELIMIT = 10 * 60 * 1000;
-const FETCH_INTERVAL = Math.round((24 * 60 * 60 * 1000) / (ConfigEnv.GENERAL_SCAN_DAILY_LIMIT * 100));
+const FETCH_INTERVAL = Math.round((24 * 60 * 60 * 1000) / ConfigEnv.GENERAL_SCAN_DAILY_LIMIT);
 
 type StatsChangesMap = Map<string, DateRecord<number>>;
 export interface ResultState {
@@ -67,7 +67,6 @@ async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
     if (GeneralScanPaused) return;
     result = await scanChannel(channel, lastMessage);
     lastMessage = result.lastMessage;
-    Log.GeneralScan.applyChanges(result);
     await dbApply(result);
     if (result.rateLimited) {
       Log.GeneralScan.stopOnRatelimit(WAIT_AFTER_RATELIMIT);
@@ -189,6 +188,7 @@ async function dbApply(updated: ResultState) {
       updatePromises.push(bulkUpdateDgStats(id, dateRec));
   await Promise.all(updatePromises);
   PreviousData = updated;
+  Log.GeneralScan.applyChanges(updated);
   DB_ServersData.compactDatafile();
   DB_DelegationStats.compactDatafile();
   DB_Misc.compactDatafile();

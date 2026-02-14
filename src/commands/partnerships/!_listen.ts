@@ -94,7 +94,7 @@ ID: \`${invite.guild.id}\`
             },
           },
         ],
-        allowedMentions: { repliedUser: false },
+        allowedMentions: { repliedUser: warnings.length ? true : false },
         components: [
           {
             type: ComponentType.ActionRow,

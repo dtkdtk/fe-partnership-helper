@@ -1,0 +1,141 @@
+diff --git a/node_modules/@eds-fw/framework/README.md b/node_modules/@eds-fw/framework/README.md
+index 8c4c1be..55e0738 100644
+--- a/node_modules/@eds-fw/framework/README.md
++++ b/node_modules/@eds-fw/framework/README.md
+@@ -1,6 +1,4 @@
+-<p align="center">
+-    <img src="https://avatars.githubusercontent.com/u/142582396?s=400&u=efba7a6a242149915b23e51923a6c3afb7fa8fcb&v=4" width="200"/>
+-</p>
++# THIS IS A LOCAL FORK OF [@EDS-FW/FRAMEWORK](https://github.com/eds-fw/framework)
+ 
+ <b align="center">
+     
+diff --git a/node_modules/@eds-fw/framework/dist/BuiltinCommands/help.js b/node_modules/@eds-fw/framework/dist/BuiltinCommands/help.js
+index 5af864c..10acc50 100644
+--- a/node_modules/@eds-fw/framework/dist/BuiltinCommands/help.js
++++ b/node_modules/@eds-fw/framework/dist/BuiltinCommands/help.js
+@@ -1,4 +1,4 @@
+-import { ApplicationCommandType, ComponentType } from "discord.js";
++import { ApplicationCommandType, ComponentType, MessageFlags } from "discord.js";
+ import { eds, runtimeStorage } from "../index.js";
+ const config = runtimeStorage.config;
+ const loader = runtimeStorage.loader;
+@@ -45,7 +45,7 @@ export default {
+                     } : undefined
+                 }],
+             components: getMenu(roles),
+-            ephemeral: config.builtinCommandsSettings?.helpEphemeral ?? true,
++            flags: (config.builtinCommandsSettings?.helpEphemeral ?? true) ? [MessageFlags.Ephemeral] : [],
+         });
+     },
+     info: {
+diff --git a/node_modules/@eds-fw/framework/dist/Classes/ContextFactory.js b/node_modules/@eds-fw/framework/dist/Classes/ContextFactory.js
+index 5d0d4d3..4938961 100644
+--- a/node_modules/@eds-fw/framework/dist/Classes/ContextFactory.js
++++ b/node_modules/@eds-fw/framework/dist/Classes/ContextFactory.js
+@@ -1,3 +1,4 @@
++import { MessageFlags } from "discord.js";
+ import { eds } from "../index.js";
+ import { runtimeStorage } from "../runtimeStorage.js";
+ /**
+@@ -38,13 +39,17 @@ export class ContextFactory {
+         return ctx;
+     }
+ }
+-function _universalReplyImpl(target, message) {
++function _universalReplyImpl(target, message, maybeEphemeral = false) {
+     const bakedMessage = (typeof message == "string") ? { content: message } : message;
+     if ("token" in target)
+-        return target.reply({ ...bakedMessage, ephemeral: bakedMessage.maybeEphemeral, fetchReply: true }).catch(err => void console.error(err));
++        return target.reply({
++            ...bakedMessage,
++            ...(maybeEphemeral ? { flags: MessageFlags.Ephemeral } : {}),
++            fetchReply: true
++        }).catch(err => void console.error(err));
+     else
+         return target.reply({ ...bakedMessage }).catch(err => void console.error(err));
+ }
+ function _quickReplyImpl(target, maybeEphemeral, ...message) {
+-    return _universalReplyImpl(target, { ...eds.quickEmbed(...message), maybeEphemeral });
++    return _universalReplyImpl(target, eds.quickEmbed(...message), maybeEphemeral);
+ }
+diff --git a/node_modules/@eds-fw/framework/dist/Classes/SlashCommandsManager.js b/node_modules/@eds-fw/framework/dist/Classes/SlashCommandsManager.js
+index 9e7d3a0..3cf96e7 100644
+--- a/node_modules/@eds-fw/framework/dist/Classes/SlashCommandsManager.js
++++ b/node_modules/@eds-fw/framework/dist/Classes/SlashCommandsManager.js
+@@ -31,6 +31,8 @@ export class SlashCommandsManager {
+     save() {
+         if (!this.runtime.client.application)
+             throw errors.SlashCommandsManager.clientNotReady();
++        if (!Object.values(this._commands).length)
++            return;
+         this.runtime.client.application.commands.set(Object.values(this._commands));
+     }
+ }
+diff --git a/node_modules/@eds-fw/framework/dist/Types/Command.d.ts b/node_modules/@eds-fw/framework/dist/Types/Command.d.ts
+index 76912e4..312de98 100644
+--- a/node_modules/@eds-fw/framework/dist/Types/Command.d.ts
++++ b/node_modules/@eds-fw/framework/dist/Types/Command.d.ts
+@@ -1,5 +1,5 @@
+ import type { UserContextMenuCommandInteraction } from "discord.js";
+-import type { ContextType, InteractionContext, SlashContext, TextContext } from "./Context.d.ts";
++import type { ContextType, InteractionContext, SlashContext, TextContext } from "./Context.js";
+ export type CommandType = Exclude<ContextType, "interaction">;
+ export type CommandExecutor<T extends CommandType = CommandType> = (ctx: CommandContext<T>) => Promise<unknown>;
+ export interface CommandFile<T extends CommandType> {
+diff --git a/node_modules/@eds-fw/framework/dist/Types/Config.d.ts b/node_modules/@eds-fw/framework/dist/Types/Config.d.ts
+index 2b45797..6bfec63 100644
+--- a/node_modules/@eds-fw/framework/dist/Types/Config.d.ts
++++ b/node_modules/@eds-fw/framework/dist/Types/Config.d.ts
+@@ -1,5 +1,5 @@
+ import type { ClientOptions, GatewayIntentsString } from "discord.js";
+-import type { InteractionContext, AnyContext, SlashContext, TextContext } from "./Context.d.ts";
++import type { InteractionContext, AnyContext, SlashContext, TextContext } from "./Context.js";
+ export interface ConfigExemplar {
+     /**
+      * Bot's token
+diff --git a/node_modules/@eds-fw/framework/dist/Types/Context.d.ts b/node_modules/@eds-fw/framework/dist/Types/Context.d.ts
+index 1b99ba7..1c5150f 100644
+--- a/node_modules/@eds-fw/framework/dist/Types/Context.d.ts
++++ b/node_modules/@eds-fw/framework/dist/Types/Context.d.ts
+@@ -1,6 +1,6 @@
+ import type { BaseMessageOptions, ChatInputCommandInteraction, Message, User } from "discord.js";
+-import type { SupportedInteractions } from "./SupportedInteractions.d.ts";
+-import type { quickEmbed } from "../Utils/QuickEmbed.d.ts";
++import type { SupportedInteractions } from "./SupportedInteractions.js";
++import type { quickEmbed } from "../Utils/QuickEmbed.js";
+ export type ContextType = "text" | "slash" | "interaction";
+ export type TextContext = Message<boolean> & ContextOverrides & {
+     args: string[];
+diff --git a/node_modules/@eds-fw/framework/dist/Utils/SelectMenuDefaults.d.ts b/node_modules/@eds-fw/framework/dist/Utils/SelectMenuDefaults.d.ts
+index 327d5f6..cf39bbf 100644
+--- a/node_modules/@eds-fw/framework/dist/Utils/SelectMenuDefaults.d.ts
++++ b/node_modules/@eds-fw/framework/dist/Utils/SelectMenuDefaults.d.ts
+@@ -1,2 +1,2 @@
+ import { SelectMenuComponentOptionData } from "discord.js";
+-export declare function optionsWithDefaultValue(options: SelectMenuComponentOptionData[], defaultVal: string | null): SelectMenuComponentOptionData[];
++export declare function optionsWithDefaultValue(options: SelectMenuComponentOptionData[], defaults: string[]): SelectMenuComponentOptionData[];
+diff --git a/node_modules/@eds-fw/framework/dist/Utils/SelectMenuDefaults.js b/node_modules/@eds-fw/framework/dist/Utils/SelectMenuDefaults.js
+index dd2b353..c64e859 100644
+--- a/node_modules/@eds-fw/framework/dist/Utils/SelectMenuDefaults.js
++++ b/node_modules/@eds-fw/framework/dist/Utils/SelectMenuDefaults.js
+@@ -1,12 +1,11 @@
+-export function optionsWithDefaultValue(options, defaultVal) {
+-    if (defaultVal === null)
+-        return options;
+-    let defaultIndex = options.map(it => it.value).indexOf(defaultVal);
+-    if (defaultIndex == -1)
++export function optionsWithDefaultValue(options, defaults) {
++    if (!defaults.length)
+         return options;
++    let defaultIndexes = options
++        .map(it => it.value)
++        .map((it, index) => defaults.includes(it) ? index : undefined)
++        .filter(it => it !== undefined);
+     const newOptions = [...options];
+-    const newDefault = { ...newOptions[defaultIndex] };
+-    newDefault.default = true;
+-    newOptions[defaultIndex] = newDefault;
++    newOptions.forEach((it, index) => defaultIndexes.includes(index) ? it.default = true : undefined);
+     return newOptions;
+ }

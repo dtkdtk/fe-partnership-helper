@@ -47,6 +47,7 @@ export const DB_InvitesCache = new Datastore<AsceticInvite | {}>({
 DB_Misc.find({ _id: "1" }, {}, (err, data) => {
   if (err) console.error(err);
   if (!data?.length) {
+    BotCache.set("bot_firstStart", true);
     DB_Misc.insert({ _id: "1", no_total_delegates: [] });
     DB_Misc.compactDatafile();
   }

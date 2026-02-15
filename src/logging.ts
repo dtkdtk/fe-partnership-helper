@@ -34,6 +34,9 @@ export namespace CoreLog {
   export function ready() {
     logger.info("Ready to work");
   }
+  export function firstStart() {
+    logger.info("This is a first bot's startup. Hello, World!");
+  }
   export function rateLimitLocal(limitOptions: object) {
     logger.trace(limitOptions, "Bot is locally rate-limited");
   }

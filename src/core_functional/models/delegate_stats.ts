@@ -1,5 +1,5 @@
-import { DateRecord, DB_DelegationStats, DB_Misc, getDate, MSK, type OmitId } from "corelib";
-import { DelegateStats } from "@/types.js";
+import { DelegateStats } from "#core_functional";
+import { DateRecord, DB_DelegationStats, DB_Misc, getDate, MSK, type OmitId } from "#corelib";
 
 
 const defaultDelegateStats = (userId: string) => ({

@@ -8,7 +8,6 @@
     "@types/node": "^20.11.5",
     "discord-api-types": "^0.38.37",
     "patch-package": "^8.0.1",
-    "tsconfig-paths": "^4.2.0",
     "tslib": "^2.6.2",
     "typescript": "^5.4.5"
   },
@@ -32,5 +31,13 @@
     "pino": "^10.3.0",
     "pino-rotate": "^0.3.0",
     "reflect-metadata": "^0.2.2"
+  },
+  "imports": {
+    "#core_functional": {
+      "node": "./dist/core_functional/index.js"
+    },
+    "#corelib": {
+      "node": "./dist/corelib.js"
+    }
   }
 }

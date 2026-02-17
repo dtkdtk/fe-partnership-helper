@@ -1,4 +1,4 @@
-import { getDate, MSK, sortDates } from "corelib";
+import { getDate, MSK, sortDates } from "#corelib";
 
 /** `Record<date:string, T>` */
 export type DateRecord<T> = Record<string, T>;

@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
+import { ConfigEnv } from "#corelib";
+import fs from "fs";
+import path from "path";
 import pino from "pino";
-import { ConfigEnv } from "corelib";
 const LOGS_DIR = "./logs";
 const LOGS_LIFE_DURATION = ConfigEnv.LOGS_LIFE_DURATION
 
@@ -35,7 +35,7 @@ export namespace CoreLog {
     logger.info("Ready to work");
   }
   export function firstStart() {
-    logger.info("This is a first bot's startup. Hello, World!");
+    logger.info('This is a first bot"s startup. Hello, World!');
   }
   export function rateLimitLocal(limitOptions: object) {
     logger.trace(limitOptions, "Bot is locally rate-limited");

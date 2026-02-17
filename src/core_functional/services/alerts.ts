@@ -1,6 +1,6 @@
+import { ConfigEnv, CoreLog, quotePartnership, resources, TimedQueue } from "#corelib";
 import eds from "@eds-fw/framework";
 import { GuildMember, Message, MessageCreateOptions, User } from "discord.js";
-import { ConfigEnv, CoreLog, quotePartnership, resources, TimedQueue } from "corelib";
 import { ConditionErrNames, ConditionErrno } from "./check_conditions.js";
 import { Log } from "./log.js";
 

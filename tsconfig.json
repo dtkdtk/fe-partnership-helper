@@ -37,8 +37,8 @@
     "emitDecoratorMetadata": true,
     "lib": ["ESNext", "ESNext.Disposable", "DOM"],
     "paths": {
-      "@/*": ["./src/core_functional/*"],
-      "corelib": ["./src/corelib.js"]
+      "#core_functional": ["./src/core_functional/index.js"],
+      "#corelib": ["./src/corelib.js"]
     }
   }
 }

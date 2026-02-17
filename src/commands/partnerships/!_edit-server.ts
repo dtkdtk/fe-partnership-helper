@@ -1,12 +1,6 @@
-import { addToBlacklist, getBlacklistData, removeFromBlacklist } from "@/models/blacklist.js";
-import { getPartnerData } from "@/models/partner.js";
-import { getServerData, updateServerData_byInvite } from "@/models/server.js";
-import { extractInviteCodes, fetchInvite } from "@/services/check_conditions.js";
-import { Log } from "@/services/log.js";
-import { partnerMenuSource } from "@/services/partner_management.js";
-import { AsceticInvite, ServerData } from "@/types.js";
+import { addToBlacklist, AsceticInvite, extractInviteCodes, fetchInvite, getBlacklistData, getPartnerData, getServerData, Log, partnerMenuSource, removeFromBlacklist, ServerData, updateServerData_byInvite } from "#core_functional";
+import { BotCache, checkPermission, DgPermissions, emoji, lastDatedVal, resources, tReply } from "#corelib";
 import eds from "@eds-fw/framework";
-import { BotCache, checkPermission, DgPermissions, emoji, lastDatedVal, resources, tReply } from "corelib";
 import { BaseMessageOptions, ButtonStyle, ComponentType, MessageActionRowComponentData, MessageFlags, SelectMenuDefaultValueType, TextInputStyle } from "discord.js";
 import { CoreLog } from "../../logging.js";
 

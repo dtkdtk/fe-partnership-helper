@@ -1,17 +1,23 @@
+import {
+  clearOldPartnerships,
+  ConditionErrNames, ConditionErrno,
+  DelegateAlerts,
+  getDelegateStats,
+  getServerData,
+  incrementDelegateStats, initDelegateStats,
+  initServerData_byInvite,
+  Log,
+  markAsLatest,
+  partnerMenuSource,
+  updateServerData_byInvite,
+  validateConditions
+} from "#core_functional";
+import {
+  BotCache, checkPermission, ConfigEnv, DgPermissions,
+  getDate, lastDatedVal, MessageInvites, MSK, noAccess, resources
+} from "#corelib";
 import eds, { CommandContext } from "@eds-fw/framework";
 import { ComponentType, SelectMenuDefaultValueType } from "discord.js";
-import { getDelegateStats,
-  incrementDelegateStats, initDelegateStats } from "@/models/delegate_stats.js";
-import { getServerData, initServerData_byInvite,
-  markAsLatest, updateServerData_byInvite } from "@/models/server.js";
-import { DelegateAlerts } from "@/services/alerts.js";
-import { ConditionErrNames, ConditionErrno, validateConditions } from "@/services/check_conditions.js";
-import { clearOldPartnerships } from "@/services/handle_delete.js";
-import { Log } from "@/services/log.js";
-import { partnerMenuSource } from "@/services/partner_management.js";
-import { BotCache, checkPermission, ConfigEnv, DgPermissions,
-  getDate, lastDatedVal, MessageInvites, MSK, noAccess, resources
-} from "corelib";
 import { CoreLog } from "../../logging.js";
 
 

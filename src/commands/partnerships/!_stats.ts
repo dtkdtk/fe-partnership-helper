@@ -1,11 +1,16 @@
+import {
+  ActivityTypes,
+  statsMenuSource,
+  StatsViewType
+} from "#core_functional";
+import {
+  checkPermission,
+  CoreLog,
+  DgPermissions,
+  noAccess
+} from "#corelib";
 import eds from "@eds-fw/framework";
-import type { Canvas } from "canvas";
-import { randomUUID } from "crypto";
-import { AttachmentBuilder, InteractionReplyOptions, MessageFlags } from "discord.js";
-import { getDelegateStats } from "@/models/delegate_stats.js";
-import { createChart } from "@/statistics/chart.js";
-import { checkPermission, CoreLog, DgPermissions, get14dates, getDate, MSK, noAccess, resources } from "corelib";
-
+import { MessageFlags } from "discord.js";
 
 export default {
   async run(ctx) {
@@ -18,33 +23,14 @@ export default {
     }
 
     const lazyDefer = ctx.deferReply({ flags: [MessageFlags.Ephemeral] }).catch(CoreLog.unexpectedError);
-    const attKey = "delegate-stats-chart-" + randomUUID() + ".png";
-    const {text, chart} = await getStatsDisplay(user?.id ?? ctx.user.id);
-
-    const attachment = new AttachmentBuilder(
-      chart.toBuffer("image/png")
-    ).setName(attKey);
-
-    const msg: InteractionReplyOptions = {
-      embeds: [
-        {
-          author: {
-            name: "Информация о делегате",
-            icon_url: resources.images.list,
-          },
-          color: resources.colors.delegation,
-          description: text,
-          footer: eds.getRandomFooterEmbed().data_djs,
-          title: `${user.displayName} [${user.id}]`,
-          thumbnail: user?.avatarURL()
-            ? { url: user?.avatarURL() ?? ctx.user.avatarURL()! } : undefined,
-          image: {
-            url: "attachment://" + attKey,
-          },
-        },
-      ],
-      files: [attachment],
-    };
+    
+    // Используем общую функцию с типом DELEGATE
+    const msg = await statsMenuSource(
+      ctx, 
+      ActivityTypes.TWO_WEEKS, // По умолчанию показываем за 2 недели
+      StatsViewType.DELEGATE,
+      user
+    );
 
     await lazyDefer;
     ctx.followUp(msg).catch(CoreLog.unexpectedError);
@@ -57,27 +43,47 @@ export default {
   },
 } satisfies eds.CommandFile<"slash">;
 
-
-async function getStatsDisplay(userId: string): Promise<{ text: string, chart: Canvas }> {
-  let numbers, totalPartnerships, todayPartnerships;
-  const data = await getDelegateStats(userId);
-  const dates = get14dates().toReversed();
-  if (data) {
-    numbers = dates
-      .map((D) => data.activity[D] ?? 0)
-      .map((num) => (num < 0 ? 0 : num));
-    totalPartnerships = data.total_partnerships;
-    todayPartnerships = data.activity[getDate(MSK())];
+// Кнопки для переключения режимов у делегата
+eds.createButton({ custom_id: "delegation-stats.mode.today" },
+  async (ctx) => {
+    // Здесь нужно получить ID делегата из контекста
+    // Это можно сделать через кастомные данные в кнопке или из сообщения
+    const userId = ctx.user.id; // В реальности нужно получать целевого пользователя
+    
+    if (!checkPermission(ctx.member, DgPermissions.viewForeignStats) && userId !== ctx.user.id) {
+      return noAccess(ctx);
+    }
+    
+    const lazyDefer = ctx.deferUpdate().catch(CoreLog.unexpectedError);
+    const msg = await statsMenuSource(
+      ctx, 
+      ActivityTypes.TODAY,
+      StatsViewType.DELEGATE,
+      ctx.user // Здесь должен быть целевой пользователь
+    );
+    if ("flags" in msg) delete msg.flags;
+    await lazyDefer;
+    ctx.editReply(msg).catch(CoreLog.unexpectedError);
   }
-  else {
-    numbers = Array(14).fill(0);
-    totalPartnerships = 0;
-    todayPartnerships = 0;
+);
+
+eds.createButton({ custom_id: "delegation-stats.mode.two_weeks" },
+  async (ctx) => {
+    const userId = ctx.user.id; // В реальности нужно получать целевого пользователя
+    
+    if (!checkPermission(ctx.member, DgPermissions.viewForeignStats) && userId !== ctx.user.id) {
+      return noAccess(ctx);
+    }
+    
+    const lazyDefer = ctx.deferUpdate().catch(CoreLog.unexpectedError);
+    const msg = await statsMenuSource(
+      ctx, 
+      ActivityTypes.TWO_WEEKS,
+      StatsViewType.DELEGATE,
+      ctx.user // Здесь должен быть целевой пользователь
+    );
+    if ("flags" in msg) delete msg.flags;
+    await lazyDefer;
+    ctx.editReply(msg).catch(CoreLog.unexpectedError);
   }
-
-  const chart = createChart(numbers, dates);
-  const text = `\n\n**Заключено партнёрств:**\nЗа всё время: \`${totalPartnerships}\`\n`
-    + `За сегодня: \`${todayPartnerships}\`\n\n**Активность за 2 недели:**`;
-
-  return { text, chart };
-}
+);

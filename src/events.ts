@@ -1,6 +1,6 @@
+import { onPartnershipDelete } from "#core_functional";
+import { _ErrorActionFn, _initErrorAction, BotCache, ConfigEnv, CoreLog, MSK } from "#corelib";
 import eds from "@eds-fw/framework";
-import { onPartnershipDelete } from "@/services/handle_delete.js";
-import { _ErrorActionFn, _initErrorAction, BotCache, ConfigEnv, CoreLog, MSK } from "corelib";
 import { createSlashCommands } from "./slashCommands.js";
 
 
@@ -80,6 +80,6 @@ export default function initEventListeners(bot: eds.KnownRuntimeProperties) {
   });
 }
 
+import { scanPartnershipChannel } from "#core_functional";
 import * as _errs from "@eds-fw/framework/dist/errors.js";
-import { scanPartnershipChannel } from "@/services/scan.js";
 _errs.Loader.templateLoadCommandSkipped = () => {};

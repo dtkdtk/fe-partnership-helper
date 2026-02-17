@@ -1,9 +1,7 @@
+import { getPartnerData, getServerData, initPartnerData, isActualPartner, ServerData, updatePartnerData } from "#core_functional";
+import { ConfigEnv, DB_ServersData, lastDatedVal, resources, softError, tReply, updateDatedVal } from "#corelib";
 import eds from "@eds-fw/framework";
 import { GuildMember, MessageCreateOptions, PartialGuildMember, UserSelectMenuInteraction } from "discord.js";
-import { ConfigEnv, DB_ServersData, lastDatedVal, resources, softError, tReply, updateDatedVal } from "corelib";
-import { getPartnerData, initPartnerData, isActualPartner, updatePartnerData } from "@/models/partner.js";
-import { getServerData } from "@/models/server.js";
-import { ServerData } from "@/types.js";
 import { PartnerAlerts } from "./alerts.js";
 import { Log } from "./log.js";
 

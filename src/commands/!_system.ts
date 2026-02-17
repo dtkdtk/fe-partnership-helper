@@ -1,14 +1,15 @@
-import { eds } from "@eds-fw/framework";
+import { getDelegateStats, initDelegateStats, pauseGeneralScan, resumeGeneralScan, runGeneralScan } from "#core_functional";
 import {
+  BotCache,
   checkPermission,
   ConfigEnv,
   CoreLog,
+  DB_DelegationStats, DB_Misc,
   DgPermissions,
   logger,
-  noAccess, BotCache, DB_DelegationStats, DB_Misc
-} from "corelib";
-import { getDelegateStats, initDelegateStats } from "@/models/delegate_stats.js";
-import { pauseGeneralScan, resumeGeneralScan, runGeneralScan } from "@/services/general_scan.js";
+  noAccess
+} from "#corelib";
+import { eds } from "@eds-fw/framework";
 
 
 namespace Log {

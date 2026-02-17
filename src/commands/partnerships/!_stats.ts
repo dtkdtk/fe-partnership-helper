@@ -2,9 +2,9 @@ import eds from "@eds-fw/framework";
 import type { Canvas } from "canvas";
 import { randomUUID } from "crypto";
 import { AttachmentBuilder, InteractionReplyOptions, MessageFlags } from "discord.js";
-import { checkPermission, CoreLog, DgPermissions, get14dates, getDate, MSK, noAccess, resources } from "../../corelib.js";
-import { createChart } from "./chart.js";
-import { getDelegateStats } from "./models/delegate_stats.js";
+import { getDelegateStats } from "@/models/delegate_stats.js";
+import { createChart } from "@/statistics/chart.js";
+import { checkPermission, CoreLog, DgPermissions, get14dates, getDate, MSK, noAccess, resources } from "corelib";
 
 
 export default {

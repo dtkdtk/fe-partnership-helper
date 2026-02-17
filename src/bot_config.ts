@@ -1,6 +1,6 @@
 import { eds } from "@eds-fw/framework";
 import { Options } from "discord.js";
-import { ConfigEnv, resources } from "./corelib.js";
+import { ConfigEnv, resources } from "corelib";
 import { noAccess } from "./lib/checkAccess.js";
 
 const botConfig: eds.ConfigExemplar = {

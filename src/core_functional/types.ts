@@ -1,5 +1,5 @@
-import { Invite } from "discord.js";
-import { DateRecord } from "../../corelib.js";
+import type { Invite } from "discord.js";
+import type { DateRecord } from "corelib";
 
 
 export interface DelegateStats {

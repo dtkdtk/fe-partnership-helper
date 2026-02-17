@@ -1,9 +1,9 @@
 import { eds } from "@eds-fw/framework";
 import { Message } from "discord.js";
-import { BotCache, ConfigEnv, MessageInvites } from "../../../corelib.js";
-import { decrementDelegateStats, getDelegateStats } from "../models/delegate_stats.js";
-import { getServerData, updateServerData_byInvite } from "../models/server.js";
-import { AsceticInvite } from "../types.js";
+import { BotCache, ConfigEnv, MessageInvites } from "corelib";
+import { decrementDelegateStats, getDelegateStats } from "@/models/delegate_stats.js";
+import { getServerData, updateServerData_byInvite } from "@/models/server.js";
+import { AsceticInvite } from "@/types.js";
 import { validateConditions } from "./check_conditions.js";
 import { Log } from "./log.js";
 

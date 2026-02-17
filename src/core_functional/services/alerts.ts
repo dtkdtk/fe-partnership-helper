@@ -1,7 +1,6 @@
 import eds from "@eds-fw/framework";
-import { ButtonStyle, ComponentType, GuildMember, Message, MessageCreateOptions, User } from "discord.js";
-import { ConfigEnv, CoreLog, emoji, quotePartnership, resources } from "../../../corelib.js";
-import { TimedQueue } from "../../../lib/timedQueue.js";
+import { GuildMember, Message, MessageCreateOptions, User } from "discord.js";
+import { ConfigEnv, CoreLog, quotePartnership, resources, TimedQueue } from "corelib";
 import { ConditionErrNames, ConditionErrno } from "./check_conditions.js";
 import { Log } from "./log.js";
 

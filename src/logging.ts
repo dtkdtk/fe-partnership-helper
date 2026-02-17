@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import pino from "pino";
-import { ConfigEnv } from "./corelib.js";
+import { ConfigEnv } from "corelib";
 const LOGS_DIR = "./logs";
 const LOGS_LIFE_DURATION = ConfigEnv.LOGS_LIFE_DURATION
 

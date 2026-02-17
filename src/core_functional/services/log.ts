@@ -1,5 +1,5 @@
 import moment from "moment";
-import { logger, MSK } from "../../../corelib.js";
+import { logger, MSK } from "corelib";
 import { ConditionErrno } from "./check_conditions.js";
 import { ResultState } from "./general_scan.js";
 

@@ -1,6 +1,5 @@
-import { updateDatedVal } from "../../../corelib.js";
-import { DB_Misc, DB_ServersData } from "../../../databases.js";
-import { AsceticInvite, ServerData } from "../types.js";
+import { DB_Misc, DB_ServersData, updateDatedVal } from "corelib";
+import { AsceticInvite, ServerData } from "@/types.js";
 
 
 export async function initServerData(

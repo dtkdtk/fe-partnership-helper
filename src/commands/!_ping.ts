@@ -1,5 +1,5 @@
 import { eds } from "@eds-fw/framework";
-import { CoreLog, MSK } from "../corelib.js";
+import { CoreLog, MSK } from "corelib";
 
 
 export default {

@@ -1,10 +1,11 @@
 import "dotenv/config";
+import "tsconfig-paths/register";
 import "./databases.js";
 
 import eds from "@eds-fw/framework";
 import { registerFont } from "canvas";
 import { botConfig } from "./bot_config.js";
-import { CoreLog, resources } from "./corelib.js";
+import { CoreLog, resources } from "corelib";
 import initEventListeners from "./events.js";
 
 CoreLog.startup();

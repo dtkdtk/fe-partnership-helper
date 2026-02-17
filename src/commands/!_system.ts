@@ -5,18 +5,11 @@ import {
   CoreLog,
   DgPermissions,
   logger,
-  noAccess
-} from "../corelib.js";
-import { BotCache, DB_DelegationStats, DB_Misc } from "../databases.js";
-import {
-  getDelegateStats,
-  initDelegateStats,
-} from "./partnerships/models/delegate_stats.js";
-import {
-  pauseGeneralScan,
-  resumeGeneralScan,
-  runGeneralScan,
-} from "./partnerships/services/general_scan.js";
+  noAccess, BotCache, DB_DelegationStats, DB_Misc
+} from "corelib";
+import { getDelegateStats, initDelegateStats } from "@/models/delegate_stats.js";
+import { pauseGeneralScan, resumeGeneralScan, runGeneralScan } from "@/services/general_scan.js";
+
 
 namespace Log {
   export namespace System {

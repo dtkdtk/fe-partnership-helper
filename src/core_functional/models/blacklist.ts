@@ -1,5 +1,5 @@
-import { DB_ServersBlacklist } from "../../../databases.js";
-import { ServerBlacklistData } from "../types.js";
+import { DB_ServersBlacklist } from "corelib";
+import { ServerBlacklistData } from "@/types.js";
 
 
 export async function addToBlacklist(

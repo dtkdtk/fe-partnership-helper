@@ -1,5 +1,5 @@
-import { DB_InvitesCache } from "../../../databases.js";
-import { AsceticInvite } from "../types.js";
+import { DB_InvitesCache } from "corelib";
+import { AsceticInvite } from "@/types.js";
 
 export namespace InvitesCache {
   export const Unfetched = Symbol();

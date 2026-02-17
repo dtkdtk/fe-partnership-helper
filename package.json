@@ -8,6 +8,7 @@
     "@types/node": "^20.11.5",
     "discord-api-types": "^0.38.37",
     "patch-package": "^8.0.1",
+    "tsconfig-paths": "^4.2.0",
     "tslib": "^2.6.2",
     "typescript": "^5.4.5"
   },

@@ -1,7 +1,7 @@
 import * as nedb from "@seald-io/nedb";
 import { Collection } from "discord.js";
 import NodeCache from "node-cache";
-import { AsceticInvite, DelegateStats, PartnerData, ServerBlacklistData, ServerData } from "./commands/partnerships/types.js";
+import type { AsceticInvite, DelegateStats, PartnerData, ServerBlacklistData, ServerData } from "./core_functional/types.js";
 const Datastore = nedb.default as unknown as typeof nedb.default.default;
 
 export interface MiscDbData {

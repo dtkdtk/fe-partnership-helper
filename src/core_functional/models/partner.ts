@@ -1,6 +1,5 @@
-import { lastDatedVal, updateDatedVal } from "../../../corelib.js";
-import { DB_PartnersData, DB_ServersData } from "../../../databases.js";
-import { PartnerData } from "../types.js";
+import { DB_PartnersData, DB_ServersData, lastDatedVal, updateDatedVal } from "corelib";
+import { PartnerData } from "@/types.js";
 
 
 export async function initPartnerData(

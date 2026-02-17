@@ -1,13 +1,19 @@
 import eds, { CommandContext } from "@eds-fw/framework";
 import { ComponentType, SelectMenuDefaultValueType } from "discord.js";
-import { BotCache, checkPermission, ConfigEnv, CoreLog, DgPermissions, getDate, lastDatedVal, MessageInvites, MSK, noAccess, resources } from "../../corelib.js";
-import { getDelegateStats, incrementDelegateStats, initDelegateStats } from "./models/delegate_stats.js";
-import { getServerData, initServerData_byInvite, markAsLatest, updateServerData_byInvite } from "./models/server.js";
-import { DelegateAlerts } from "./services/alerts.js";
-import { ConditionErrNames, ConditionErrno, validateConditions } from "./services/check_conditions.js";
-import { clearOldPartnerships } from "./services/handle_delete.js";
-import { partnerMenuSource } from "./services/partner_management.js";
-import { Log } from "./services/log.js";
+import { getDelegateStats,
+  incrementDelegateStats, initDelegateStats } from "@/models/delegate_stats.js";
+import { getServerData, initServerData_byInvite,
+  markAsLatest, updateServerData_byInvite } from "@/models/server.js";
+import { DelegateAlerts } from "@/services/alerts.js";
+import { ConditionErrNames, ConditionErrno, validateConditions } from "@/services/check_conditions.js";
+import { clearOldPartnerships } from "@/services/handle_delete.js";
+import { Log } from "@/services/log.js";
+import { partnerMenuSource } from "@/services/partner_management.js";
+import { BotCache, checkPermission, ConfigEnv, DgPermissions,
+  getDate, lastDatedVal, MessageInvites, MSK, noAccess, resources
+} from "corelib";
+import { CoreLog } from "../../logging.js";
+
 
 
 export default {

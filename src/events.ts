@@ -1,6 +1,6 @@
 import eds from "@eds-fw/framework";
-import { onPartnershipDelete } from "./commands/partnerships/services/handle_delete.js";
-import { _ErrorActionFn, _initErrorAction, BotCache, ConfigEnv, CoreLog, MSK } from "./corelib.js";
+import { onPartnershipDelete } from "@/services/handle_delete.js";
+import { _ErrorActionFn, _initErrorAction, BotCache, ConfigEnv, CoreLog, MSK } from "corelib";
 import { createSlashCommands } from "./slashCommands.js";
 
 
@@ -65,9 +65,9 @@ export default function initEventListeners(bot: eds.KnownRuntimeProperties) {
   bot.client.once("clientReady", async () => {
     CoreLog.ready();
     console.log("Делай со мной всё, что хочешь - я готов ко всему.");
+    createSlashCommands(eds.runtimeStorage);
     if (BotCache.get("bot_firstStart") === true) {
       CoreLog.firstStart();
-      createSlashCommands(eds.runtimeStorage);
     }
     const guild = await eds.sfGuild(bot.client.guilds, ConfigEnv.GUILD_ID);
     const sysChannel = await eds.sfChannel(
@@ -81,5 +81,5 @@ export default function initEventListeners(bot: eds.KnownRuntimeProperties) {
 }
 
 import * as _errs from "@eds-fw/framework/dist/errors.js";
-import { scanPartnershipChannel } from "./commands/partnerships/services/scan.js";
+import { scanPartnershipChannel } from "@/services/scan.js";
 _errs.Loader.templateLoadCommandSkipped = () => {};

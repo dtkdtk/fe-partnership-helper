@@ -10,6 +10,7 @@ import {
   ComponentType,
   MessageFlags
 } from "discord.js";
+import { createChart } from "@/statistics/chart.js";
 import {
   checkPermission,
   CoreLog,
@@ -21,8 +22,7 @@ import {
   MSK,
   noAccess,
   resources,
-} from "../../corelib.js";
-import { createChart } from "./chart.js";
+} from "corelib";
 
 const components = [
   {

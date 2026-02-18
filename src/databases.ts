@@ -3,6 +3,7 @@ import { Collection } from "discord.js";
 import NodeCache from "node-cache";
 import type { AsceticInvite, DelegateStats, PartnerData, ServerBlacklistData, ServerData } from "#core_functional";
 const Datastore = nedb.default as unknown as typeof nedb.default.default;
+const AUTO_COMP_INTERVAL = 1 * 60 * 60 * 1000; //1 час
 
 export interface MiscDbData {
   _id: "1";
@@ -18,31 +19,42 @@ export const DB_DelegationStats = new Datastore<DelegateStats>({
   inMemoryOnly: false,
   autoload: true,
 });
+DB_DelegationStats.setAutocompactionInterval(AUTO_COMP_INTERVAL);
+
 export const DB_ServersData = new Datastore<ServerData>({
   filename: "./database/servers_data.db",
   inMemoryOnly: false,
   autoload: true,
 });
+DB_ServersData.setAutocompactionInterval(AUTO_COMP_INTERVAL);
+
 export const DB_PartnersData = new Datastore<PartnerData>({
   filename: "./database/partners_data.db",
   inMemoryOnly: false,
   autoload: true,
 });
+DB_PartnersData.setAutocompactionInterval(AUTO_COMP_INTERVAL);
+
 export const DB_ServersBlacklist = new Datastore<ServerBlacklistData>({
   filename: "./database/servers_blacklist.db",
   inMemoryOnly: false,
   autoload: true,
 });
+DB_ServersBlacklist.setAutocompactionInterval(AUTO_COMP_INTERVAL);
+
 export const DB_Misc = new Datastore<MiscDbData>({
   filename: "./database/misc.db",
   inMemoryOnly: false,
   autoload: true,
 });
+DB_Misc.setAutocompactionInterval(AUTO_COMP_INTERVAL);
+
 export const DB_InvitesCache = new Datastore<AsceticInvite | {}>({
   filename: "./database/invites_cache.db",
   inMemoryOnly: false,
   autoload: true,
 });
+DB_InvitesCache.setAutocompactionInterval(AUTO_COMP_INTERVAL);
 
 DB_Misc.find({ _id: "1" }, {}, (err, data) => {
   if (err) console.error(err);

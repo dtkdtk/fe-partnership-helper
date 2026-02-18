@@ -3,6 +3,8 @@
     "typescript.tsdk": "node_modules\\typescript\\lib",
     "cSpell.words": [
         "#corelib",
+        "Autocompaction",
+        "corelib",
         "getconfig",
         "sharedlib",
         "shlib",

@@ -1,10 +1,5 @@
-import { ActivityTypes, statsMenuSource } from "#core_functional";
-import {
-  checkPermission,
-  CoreLog,
-  DgPermissions,
-  noAccess,
-} from "#corelib";
+import { StatsInterval, statsMenuSource, StatsTarget } from "#core_functional";
+import { BotCache, checkPermission, CoreLog, DgPermissions, noAccess } from "#corelib";
 import eds from "@eds-fw/framework";
 import { MessageFlags } from "discord.js";
 
@@ -14,10 +9,17 @@ export default {
       return noAccess(ctx);
     }
 
-    const lazyDefer = ctx.deferReply({ flags: [MessageFlags.Ephemeral] }).catch(CoreLog.unexpectedError);
-    const msg = await statsMenuSource(ctx, ActivityTypes.TODAY);
+    const lazyDefer = ctx
+      .deferReply({ flags: [MessageFlags.Ephemeral] })
+      .catch(CoreLog.unexpectedError);
+    const msg = await statsMenuSource(
+      ctx,
+      StatsInterval.TODAY,
+      StatsTarget.DEPARTMENT,
+    );
     await lazyDefer;
-    ctx.followUp(msg).catch(CoreLog.unexpectedError);
+    const replyMsg = await ctx.followUp(msg).catch(CoreLog.unexpectedError);
+    if (replyMsg) BotCache.set(`stats_target $$ ${replyMsg.id}`, StatsTarget.DEPARTMENT);
   },
 
   info: {
@@ -27,30 +29,4 @@ export default {
   },
 } satisfies eds.CommandFile<"slash">;
 
-eds.createButton({ custom_id: "delegation-stats.mode.today" },
-  async (ctx) => {
-    if (!checkPermission(ctx.member, DgPermissions.viewDepartmentStats)) {
-      return noAccess(ctx);
-    }
-    
-    const lazyDefer = ctx.deferUpdate().catch(CoreLog.unexpectedError);
-    const msg = await statsMenuSource(ctx, ActivityTypes.TODAY);
-    if ("flags" in msg) delete msg.flags;
-    await lazyDefer;
-    ctx.editReply(msg).catch(CoreLog.unexpectedError);
-  }
-);
 
-eds.createButton({ custom_id: "delegation-stats.mode.two_weeks" },
-  async (ctx) => {
-    if (!checkPermission(ctx.member, DgPermissions.viewDepartmentStats)) {
-      return noAccess(ctx);
-    }
-    
-    const lazyDefer = ctx.deferUpdate();
-    const msg = await statsMenuSource(ctx, ActivityTypes.TWO_WEEKS);
-    if ("flags" in msg) delete msg.flags;
-    await lazyDefer;
-    ctx.editReply(msg).catch(CoreLog.unexpectedError);
-  }
-);

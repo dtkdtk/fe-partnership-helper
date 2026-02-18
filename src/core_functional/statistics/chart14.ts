@@ -1,5 +1,5 @@
+import { resources } from "#corelib";
 import { Canvas } from "canvas";
-import { resources } from "corelib";
 
 const BG_COLOR = "#25272A";
 const MAIN_COLOR = "#" + resources.colors.delegation.toString(16);
@@ -7,7 +7,7 @@ const TEXT_COLOR = "#ffffff";
 const AXIS_COLOR = "#444444";
 
 /** data - это массив из 14 чисел (по дням) */
-export function createChart(data: number[], dates: string[]): Canvas {
+export function build14datesChart(values: number[], dates: string[]): Canvas {
   // Убираем год из дат
   dates = dates.map((_) => _.split("-").slice(0, -1).join("."));
 
@@ -21,7 +21,7 @@ export function createChart(data: number[], dates: string[]): Canvas {
   ctx.fillRect(0, 0, width, height);
 
   // Находим максимальное значение
-  const maxData = Math.max(...data);
+  const maxData = Math.max(...values);
   
   // Расчет размеров
   const font_size = Math.round((Math.sqrt(width * height) / 100) * 3);
@@ -35,7 +35,7 @@ export function createChart(data: number[], dates: string[]): Canvas {
   const bottomY = height - date_height; // Нижняя граница столбцов
   const maxBarHeight = bottomY - maxColumnTop; // Максимальная высота столбца
   
-  const column_width = availableWidth / data.length;
+  const column_width = availableWidth / values.length;
   const bar_width = column_width * 0.7;
   const bar_offset = (column_width - bar_width) / 2;
 
@@ -83,7 +83,7 @@ export function createChart(data: number[], dates: string[]): Canvas {
   }
 
   // Отрисовка столбцов и значений
-  data.forEach((count, i) => {
+  values.forEach((count, i) => {
     const bar_height = (count / maxData) * maxBarHeight;
     const x = padding + i * column_width + bar_offset;
     const y = bottomY - bar_height;
@@ -109,3 +109,5 @@ export function createChart(data: number[], dates: string[]): Canvas {
 
   return canvas;
 }
+//Примечание: данный код написан ИИ по образцу моего старого кода
+//(раньше, гистограмма была лежачей; попросил ИИ перевернуть её). AI works.

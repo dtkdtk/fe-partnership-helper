@@ -1,4 +1,4 @@
-import { onPartnershipDelete } from "#core_functional";
+import { onPartnershipDelete, performPartnershipsScan } from "#core_functional";
 import { _ErrorActionFn, _initErrorAction, BotCache, ConfigEnv, CoreLog, MSK } from "#corelib";
 import eds from "@eds-fw/framework";
 import { createSlashCommands } from "./slashCommands.js";
@@ -76,10 +76,9 @@ export default function initEventListeners(bot: eds.KnownRuntimeProperties) {
     );
     if (sysChannel?.isTextBased())
       sysChannel.send(`Добрый вечер, я диспетчер!`).catch(console.error);
-    scanPartnershipChannel(bot.client);
+    performPartnershipsScan(bot.client);
   });
 }
 
-import { scanPartnershipChannel } from "#core_functional";
 import * as _errs from "@eds-fw/framework/dist/errors.js";
 _errs.Loader.templateLoadCommandSkipped = () => {};

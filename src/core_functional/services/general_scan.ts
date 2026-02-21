@@ -25,6 +25,9 @@ let FetchTimer: NodeJS.Timeout | null = null;
 let MessageQueue: Collection<string, Message> | undefined = undefined;
 let MessageIndex = 0;
 
+let Channels: GuildTextBasedChannel[] = [];
+let ChannelIndex = 0;
+
 export function pauseGeneralScan(adminId?: string) {
   if (FetchTimer) {
     clearTimeout(FetchTimer);
@@ -55,14 +58,19 @@ export async function runGeneralScan(client: Client) {
 
 async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
   const guild = await eds.sfGuild(client.guilds, ConfigEnv.GUILD_ID);
-  const channel = await eds.sfChannel(guild?.channels, ConfigEnv.PARTNERSHIPS_CHANNEL_ID);
-  if (!channel?.isTextBased()) return;
+  for (const channelId of ConfigEnv.PARTNERSHIP_CHANNELS_ID) {
+    const channel = await eds.sfChannel(guild?.channels, channelId);
+    if (!channel?.isTextBased()) continue;
+    Channels.push(channel);
+  }
 
   Log.GeneralScan.begin();
   let result, lastMessage = miscDbRecord.last_general_scan_message;
   
   const delayedExecutor = async (): Promise<void> => {
     if (GeneralScanPaused) return;
+    const channel = Channels[ChannelIndex++];
+    ChannelIndex %= Channels.length;
     result = await scanChannel(channel, lastMessage);
     lastMessage = result.lastMessage;
     await dbApply(result);

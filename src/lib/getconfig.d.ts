@@ -3,7 +3,7 @@ import type { DgPermissions } from "./checkAccess_permissions.ts";
 type ConfigEnvProperties = {
   BOT_SECRET_TOKEN: string;
   GUILD_ID: string;
-  PARTNERSHIPS_CHANNEL_ID: string;
+  PARTNERSHIP_CHANNELS_ID: string[];
   STAFF_CHANNEL_ID: string;
   BOT_SYSTEM_CHANNEL_ID: string;
   ENABLE_DEBUG: boolean;

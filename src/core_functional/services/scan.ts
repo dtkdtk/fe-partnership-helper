@@ -1,7 +1,7 @@
 import { getServerData, incrementDelegateStats, initServerData_byInvite, markAsLatest, updateServerData_byInvite } from "#core_functional";
 import { ConfigEnv, DB_Misc, MessageInvites, MSK, resources } from "#corelib";
 import eds from "@eds-fw/framework";
-import { Client, Message } from "discord.js";
+import { Client, GuildTextBasedChannel, Message } from "discord.js";
 import { CoreLog } from "../../logging.js";
 import { DelegateAlerts } from "./alerts.js";
 import { ConditionErrno, validateConditions } from "./check_conditions.js";
@@ -11,14 +11,20 @@ import { Log } from "./log.js";
 
 const ReactionsQueue = new eds.ActionQueue(3_000);
 const CheckedGuilds = new Set<string>();
-export async function scanPartnershipChannel(client: Client) {
-  const guild = await eds.sfGuild(client.guilds, ConfigEnv.GUILD_ID);
-  const channel = await eds.sfChannel(
-    guild?.channels,
-    ConfigEnv.PARTNERSHIPS_CHANNEL_ID
-  );
-  if (!channel?.isTextBased()) return;
 
+export async function performPartnershipsScan(client: Client) {
+  const guild = await eds.sfGuild(client.guilds, ConfigEnv.GUILD_ID);
+  if (!guild) return;
+  
+  for (const channelId of ConfigEnv.PARTNERSHIP_CHANNELS_ID) {
+    const channel = await eds.sfChannel(guild?.channels, channelId);
+    if (!channel?.isSendable()) continue;
+    await scanPartnershipChannel(client, channel);
+    CheckedGuilds.clear();
+  }
+}
+
+async function scanPartnershipChannel(client: Client, channel: GuildTextBasedChannel) {
   const _miscDbData = await DB_Misc.findOneAsync({ _id: "1" });
   let lastScannedMessageId = _miscDbData.last_scanned_message;
   let lastScanTimestamp = (await eds.sfMessage(channel.messages, lastScannedMessageId))?.createdTimestamp ?? 0;

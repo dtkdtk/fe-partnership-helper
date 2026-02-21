@@ -34,7 +34,7 @@ export async function validateConditions(
     forceCacheRefresh?: boolean,
   }
 ): Promise<ConditionErrno | AsceticInvite> {
-  if (message.channelId != ConfigEnv.PARTNERSHIPS_CHANNEL_ID) return 0;
+  if (!ConfigEnv.PARTNERSHIP_CHANNELS_ID.includes(message.channelId)) return 0;
   if (message.author.bot) return 0;
   if (message.system) return 0;
   if (message.content.startsWith(botConfig.prefix!)) return 0;

@@ -25,7 +25,7 @@ import { CoreLog } from "../../logging.js";
 export default {
   async run(ctx) {
     if (!ctx.inGuild() || ctx.guildId != ConfigEnv.GUILD_ID) return;
-    if (!ConfigEnv.PARTNERSHIP_CHANNELS_ID.includes(ctx.channelId) && ctx.author.bot && ctx.author.id != ctx.client.user.id) {
+    if (ConfigEnv.PARTNERSHIP_CHANNELS_ID.includes(ctx.channelId) && ctx.author.bot && ctx.author.id != ctx.client.user.id) {
       ctx.delete().catch(() => {});
       return;
     }

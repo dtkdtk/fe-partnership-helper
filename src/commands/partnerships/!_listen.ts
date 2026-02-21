@@ -75,9 +75,9 @@ export default {
         , displayWarnings = warnings.length ? ("\n" + warnings.join("\n")) : ""
         , displayMembers = eds.formatNumber(invite.memberCount ?? 0)
         , displayPrevDelegate = previousDelegate
-            ? `\nПредыдущий делегат:\n> ${resources.emoji.system}\`${previousDelegate.user.username}\`` : ""
+            ? `\n-# Предыдущий делегат: \`${previousDelegate.user.username}\`${resources.emoji.system}` : ""
         , displayPrevPartner = previousPartner
-            ? `\nПредыдущий партнёр:\n> ${resources.emoji.member}\`${previousPartner.user.username}\`` : ""
+            ? `\n-# Предыдущий партнёр: \`${previousPartner.user.username}\`${resources.emoji.briefcase}` : ""
 
     const reply = await ctx
       .reply({
@@ -92,8 +92,9 @@ export default {
             description: `
 ### Партнёрство ${isNewPartnership ? "ЗАКЛЮЧЕНО" : "ОБНОВЛЕНО"}.
 Количество партнёрств:
-> За сегодня: \`${todayPartnerships}\`
-> За всё время: \`${totalPartnerships}\`
+- За сегодня: \`${todayPartnerships}\`
+- За всё время: \`${totalPartnerships}\`
+
 Сервер: \`${invite.guild.name}\`
 ID: \`${invite.guild.id}\`
 Участников: \`${displayMembers}\`${resources.emoji.member}${displayPrevDelegate}${displayPrevPartner}${displayWarnings}`,

@@ -74,6 +74,9 @@ function _getValidEnv() {
   env.ADMIN_ID_LIST = env.ADMIN_ID_LIST
     ? env.ADMIN_ID_LIST.replaceAll(" ", "").split(",")
     : [];
+  env.PARTNERSHIP_CHANNELS_ID = env.PARTNERSHIP_CHANNELS_ID
+    ? env.PARTNERSHIP_CHANNELS_ID.replaceAll(" ", "").split(",")
+    : [];
 
   assert(
     env.ENABLE_DEBUG !== null,
@@ -112,8 +115,8 @@ function _getValidEnv() {
     "Не указан GUILD_ID"
   );
   assert(
-    env.PARTNERSHIPS_CHANNEL_ID !== undefined,
-    "Не указан PARTNERSHIPS_CHANNEL_ID"
+    env.PARTNERSHIP_CHANNELS_ID.length > 0,
+    "Не указан PARTNERSHIP_CHANNELS_ID"
   );
   assert(
     env.STAFF_CHANNEL_ID !== undefined,

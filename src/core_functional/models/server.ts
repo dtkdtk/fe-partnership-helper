@@ -63,6 +63,6 @@ export function updateServerData_byInvite(
   );
 }
 
-export function markAsLatest(messageId: string) {
-  return DB_Misc.update({ _id: "1" }, { $set: { last_scanned_message: messageId } });
+export function markAsLatest(channelId: string, messageId: string) {
+  return DB_Misc.update({ _id: "1" }, { $set: { [`last_scanned_message.${channelId}`]: messageId } });
 }

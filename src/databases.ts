@@ -7,8 +7,10 @@ const AUTO_COMP_INTERVAL = 1 * 60 * 60 * 1000; //1 час
 
 export interface MiscDbData {
   _id: "1";
-  last_scanned_message?: string;
-  last_general_scan_message?: string;
+  /** `{channelID => messageID}` */
+  last_scanned_message: Record<string, string>;
+  /** `[channelID, messageID]` */
+  last_general_scan_message?: [string, string];
   is_general_scan_complete?: boolean;
   /** delegates with mandatory `total_partnerships` */
   no_total_delegates: string[];
@@ -60,7 +62,11 @@ DB_Misc.find({ _id: "1" }, {}, (err, data) => {
   if (err) console.error(err);
   if (!data?.length) {
     BotCache.set("bot_firstStart", true);
-    DB_Misc.insert({ _id: "1", no_total_delegates: [] });
+    DB_Misc.insert({
+      _id: "1",
+      no_total_delegates: [],
+      last_scanned_message: {},
+    });
     DB_Misc.compactDatafile();
   }
 });

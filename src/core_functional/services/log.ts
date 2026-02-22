@@ -69,11 +69,16 @@ export namespace Log {
         + (diff.minutes() ? diff.minutes() + " min " : "") + diff.seconds() + " sec.";
       logger.info("Scan: END. Took %s", displayDiff);
     }
-    export function skipScan() {
-      logger.info("Scan: SKIP (no data about last scanned message)");
+    export function silentMode() {
+      logger.info("Scan: silent mode (no data about last scanned message)");
     }
-    export function messageOk(messageId: string, delegateId: string) {
-      logger.info({ messageId, delegateId }, "Scan: successful partnership, respect");
+    export function messageOk(
+      messageId: string, delegateId: string, silent: boolean
+    ) {
+      logger.info(
+        { messageId, delegateId, silent },
+        "Scan: successful partnership, " + (silent ? "NO respect (silent)" : "respect")
+      );
     }
     export function messageWrong(
       messageId: string, delegateId: string, errno: ConditionErrno, alert: boolean

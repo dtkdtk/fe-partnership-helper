@@ -1,7 +1,7 @@
 import { getServerData, incrementDelegateStats, initServerData_byInvite, markAsLatest, updateServerData_byInvite } from "#core_functional";
 import { ConfigEnv, DB_Misc, MessageInvites, MSK, resources } from "#corelib";
 import eds from "@eds-fw/framework";
-import { Client, GuildTextBasedChannel, Message } from "discord.js";
+import { Client, FetchMessagesOptions, GuildTextBasedChannel, Message } from "discord.js";
 import { CoreLog } from "../../logging.js";
 import { DelegateAlerts } from "./alerts.js";
 import { ConditionErrno, validateConditions } from "./check_conditions.js";
@@ -26,13 +26,16 @@ export async function performPartnershipsScan(client: Client) {
 
 async function scanPartnershipChannel(client: Client, channel: GuildTextBasedChannel) {
   const _miscDbData = await DB_Misc.findOneAsync({ _id: "1" });
-  let lastScannedMessageId = _miscDbData.last_scanned_message;
-  let lastScanTimestamp = (await eds.sfMessage(channel.messages, lastScannedMessageId))?.createdTimestamp ?? 0;
-  const scannedBefore = !!lastScannedMessageId && !!lastScanTimestamp;
+  let lastScannedMessageId: string | undefined = _miscDbData.last_scanned_message[channel.id];
+  let lastScanTimestamp = lastScannedMessageId ?
+    (await eds.sfMessage(channel.messages, lastScannedMessageId))?.createdTimestamp ?? 0 : 0;
+  const silentMode = !lastScannedMessageId && !lastScanTimestamp;
   const notificationWatermark = MSK().date(-3); //за последние 3 дня
 
   const performScan = async function() {
-    const messages = await channel.messages.fetch({ limit: 100, cache: false, after: lastScannedMessageId }).catch(() => {});
+    const fetchOptions: FetchMessagesOptions = { limit: 100, cache: false };
+    if (!silentMode) fetchOptions.after = lastScannedMessageId;
+    const messages = await channel.messages.fetch(fetchOptions).catch(() => {});
     if (!messages?.size) return false;
     messages.sort((A, B) => B.createdTimestamp - A.createdTimestamp); //Начинаем с новых
 
@@ -46,7 +49,7 @@ async function scanPartnershipChannel(client: Client, channel: GuildTextBasedCha
       if (msg.id == lastScannedMessageId) return false;
 
       else if (typeof invite === "number") {
-        const needAlert = scannedBefore && MSK(msg.createdTimestamp).isAfter(notificationWatermark);
+        const needAlert = !silentMode && MSK(msg.createdTimestamp).isAfter(notificationWatermark);
         await msg.delete().catch(() => {});
         if (needAlert) DelegateAlerts.deletePartnership(msg, invite, true);
         Log.Scan.messageWrong(msg.id, msg.author.id, invite, needAlert);
@@ -73,28 +76,26 @@ async function scanPartnershipChannel(client: Client, channel: GuildTextBasedCha
           lastScannedMessageId = msg.id;
           lastScanTimestamp = msg.createdTimestamp;
         }
-        deferReaction(msg);
-        incrementDelegateStats(msg.author.id, msg.createdTimestamp);
-        Log.Scan.messageOk(msg.id, msg.author.id);
+        if (!silentMode) {
+          deferReaction(msg);
+          incrementDelegateStats(msg.author.id, msg.createdTimestamp);
+        }
+        Log.Scan.messageOk(msg.id, msg.author.id, silentMode);
       }
     }
-    return true;
+    return !silentMode ? true : false;
   }
 
-  if (!lastScannedMessageId && !lastScanTimestamp) {
-    Log.Scan.skipScan();
+  if (!lastScannedMessageId && !lastScanTimestamp) Log.Scan.silentMode();
+  Log.Scan.start();
+  let toContinue = true;
+  while (toContinue) {
+    toContinue = await performScan();
+    await eds.wait(3_000);
   }
-  else {
-    Log.Scan.start();
-    let toContinue = true;
-    while (toContinue) {
-      toContinue = await performScan();
-      await eds.wait(3_000);
-    }
-    Log.Scan.end();
-  }
+  Log.Scan.end();
 
-  if (lastScannedMessageId) markAsLatest(lastScannedMessageId);
+  if (lastScannedMessageId) markAsLatest(channel.id, lastScannedMessageId);
   runGeneralScan(client);
 }
 

@@ -21,16 +21,17 @@ import { ComponentType, SelectMenuDefaultValueType } from "discord.js";
 import { CoreLog } from "../../logging.js";
 
 
-
 export default {
   async run(ctx) {
     if (!ctx.inGuild() || ctx.guildId != ConfigEnv.GUILD_ID) return;
-    if (ConfigEnv.PARTNERSHIP_CHANNELS_ID.includes(ctx.channelId) && ctx.author.bot && ctx.author.id != ctx.client.user.id) {
+    if (ConfigEnv.PARTNERSHIP_CHANNELS_ID.includes(ctx.channelId)
+      && ctx.author.bot
+      && ctx.author.id != ctx.client.user.id
+    ) {
       ctx.delete().catch(() => {});
       return;
     }
 
-    ///////
     const warnings = [];
     const minimalMembers = ConfigEnv.REQUIREMENT_MINIMAL_MEMBERS;
     const invite = await validateConditions(ctx, { forceCacheRefresh: true });
@@ -56,14 +57,9 @@ export default {
       deleteOldPartnership(ctx, serverData.message_id);
 
     serverData.message_id = ctx.id;
-    const prevDelegateID = lastDatedVal(serverData.delegates)
-        , prevPartnerID = lastDatedVal(serverData.partners);
-    const previousDelegate = prevDelegateID
-            ? (await eds.sfMember(ctx, prevDelegateID) ?? null) : null
-        , previousPartner = prevPartnerID
-            ? (await eds.sfMember(ctx, prevPartnerID) ?? null) : null;
+    const prevPartnerID = lastDatedVal(serverData.partners);
     updateServerData_byInvite(serverData, invite, ctx.user.id, ctx.createdTimestamp);
-    markAsLatest(ctx.id);
+    markAsLatest(ctx.id, ctx.channelId);
     const delegateStats = (
       await getDelegateStats(ctx.user.id) ?? await initDelegateStats(ctx.user.id),
       await incrementDelegateStats(ctx.user.id, +MSK())
@@ -74,10 +70,6 @@ export default {
         , totalPartnerships = delegateStats?.total_partnerships ?? 0
         , displayWarnings = warnings.length ? ("\n" + warnings.join("\n")) : ""
         , displayMembers = eds.formatNumber(invite.memberCount ?? 0)
-        , displayPrevDelegate = previousDelegate
-            ? `\n-# Предыдущий делегат: \`${previousDelegate.user.username}\`${resources.emoji.system}` : ""
-        , displayPrevPartner = previousPartner
-            ? `\n-# Предыдущий партнёр: \`${previousPartner.user.username}\`${resources.emoji.briefcase}` : ""
 
     const reply = await ctx
       .reply({
@@ -92,12 +84,12 @@ export default {
             description: `
 ### Партнёрство ${isNewPartnership ? "ЗАКЛЮЧЕНО" : "ОБНОВЛЕНО"}.
 Количество партнёрств:
-- За сегодня: \`${todayPartnerships}\`
-- За всё время: \`${totalPartnerships}\`
+- За сегодня: **${todayPartnerships}**
+- За всё время: **${totalPartnerships}**
 
 Сервер: \`${invite.guild.name}\`
 ID: \`${invite.guild.id}\`
-Участников: \`${displayMembers}\`${resources.emoji.member}${displayPrevDelegate}${displayPrevPartner}${displayWarnings}`,
+Участников: \`${displayMembers}\`${resources.emoji.member}${displayWarnings}`,
             thumbnail: {
               url: invite.guild.iconURL ?? resources.images.briefcase,
             },

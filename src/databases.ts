@@ -9,8 +9,9 @@ export interface MiscDbData {
   _id: "1";
   /** `{channelID => messageID}` */
   last_scanned_message: Record<string, string>;
-  /** `[channelID, messageID]` */
-  last_general_scan_message?: [string, string];
+  /** `{channelID => messageID}` */
+  last_general_scan_message: Record<string, string>;
+  last_general_scan_channel?: string;
   is_general_scan_complete?: boolean;
   /** delegates with mandatory `total_partnerships` */
   no_total_delegates: string[];
@@ -66,6 +67,7 @@ DB_Misc.find({ _id: "1" }, {}, (err, data) => {
       _id: "1",
       no_total_delegates: [],
       last_scanned_message: {},
+      last_general_scan_message: {},
     });
     DB_Misc.compactDatafile();
   }

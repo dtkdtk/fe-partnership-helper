@@ -63,17 +63,18 @@ async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
     if (!channel?.isTextBased()) continue;
     Channels.push(channel);
   }
-
   Log.GeneralScan.begin();
-  let result, lastMessage = miscDbRecord.last_general_scan_message;
+  ChannelIndex = miscDbRecord.last_general_scan_channel
+    ? Channels.findIndex(it => it.id == miscDbRecord.last_general_scan_channel) : 0;
   
   const delayedExecutor = async (): Promise<void> => {
     if (GeneralScanPaused) return;
     const channel = Channels[ChannelIndex++];
     ChannelIndex %= Channels.length;
-    result = await scanChannel(channel, lastMessage);
+    let lastMessage: string | undefined = miscDbRecord.last_general_scan_message[channel.id];
+    const result = await scanChannel(channel, lastMessage);
     lastMessage = result.lastMessage;
-    await dbApply(result);
+    await dbApply(result, channel.id);
     if (result.rateLimited) {
       Log.GeneralScan.stopOnRatelimit(WAIT_AFTER_RATELIMIT);
       await eds.wait(WAIT_AFTER_RATELIMIT);
@@ -184,11 +185,11 @@ async function scanChannel(channel: GuildTextBasedChannel, lastMessage?: string)
 
 let PreviousData: ResultState | undefined;
 
-async function dbApply(updated: ResultState) {
+async function dbApply(updated: ResultState, channelId: string) {
   if (!updated.changesMap?.size && updated.lastMessage == PreviousData?.lastMessage) return;
   const updatePromises: Promise<unknown>[] = [];
   if (updated.lastMessage)
-    updatePromises.push(DB_Misc.updateAsync({ _id: "1" }, { $set: { last_general_scan_message: updated.lastMessage } }));
+    updatePromises.push(DB_Misc.updateAsync({ _id: "1" }, { $set: { [`last_general_scan_message.${channelId}`]: updated.lastMessage } }));
   if (updated.changesMap)
     for (const [id, dateRec] of updated.changesMap.entries())
       updatePromises.push(bulkUpdateDgStats(id, dateRec));

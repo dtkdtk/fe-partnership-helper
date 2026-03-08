@@ -24,6 +24,7 @@ function create_IntervalMode_button(mode: StatsInterval) {
 }
 
 create_IntervalMode_button(StatsInterval.TODAY);
+create_IntervalMode_button(StatsInterval.ONE_WEEK);
 create_IntervalMode_button(StatsInterval.TWO_WEEKS);
 create_IntervalMode_button(StatsInterval.YEAR);
 

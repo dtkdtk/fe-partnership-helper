@@ -19,8 +19,8 @@ const botConfig: eds.ConfigExemplar = {
     makeCache: Options.cacheWithLimits({
       ...Options.DefaultMakeCacheSettings,
       ReactionManager: 0,
-      GuildMemberManager: 10,
-      UserManager: 10,
+      GuildMemberManager: 20,
+      UserManager: 20,
       GuildEmojiManager: 0,
       GuildStickerManager: 0,
       PresenceManager: 0,

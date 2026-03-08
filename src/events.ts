@@ -1,7 +1,7 @@
 import { onPartnershipDelete, performPartnershipsScan } from "#core_functional";
 import { _ErrorActionFn, _initErrorAction, BotCache, ConfigEnv, CoreLog, MSK } from "#corelib";
 import eds from "@eds-fw/framework";
-import { createSlashCommands } from "./slashCommands.js";
+import { createSlashCommands } from "./slash_commands.js";
 
 
 export default function initEventListeners(bot: eds.KnownRuntimeProperties) {

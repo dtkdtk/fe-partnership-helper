@@ -1,4 +1,4 @@
-import { getServerData, incrementDelegateStats, initServerData_byInvite, markAsLatest, updateServerData_byInvite } from "#core_functional";
+import { deletePartnership, getServerData, incrementDelegateStats, initServerData_byInvite, markAsLatest, updateServerData_byInvite } from "#core_functional";
 import { ConfigEnv, DB_Misc, MessageInvites, MSK, resources } from "#corelib";
 import eds from "@eds-fw/framework";
 import { Client, FetchMessagesOptions, GuildTextBasedChannel, Message } from "discord.js";
@@ -43,21 +43,21 @@ async function scanPartnershipChannel(client: Client, channel: GuildTextBasedCha
     for (const msg of messages.values()) {
       const invite = await validateConditions(msg, { checkCooldown: false });
       if (invite === ConditionErrno.just_return) {
-        await msg.delete().catch(() => CoreLog.missingPermission("MANAGE_MESSAGES", { channelId: msg.channelId }));
+        await deletePartnership(msg);
         continue;
       }
       if (msg.id == lastScannedMessageId) return false;
 
       else if (typeof invite === "number") {
         const needAlert = !silentMode && MSK(msg.createdTimestamp).isAfter(notificationWatermark);
-        await msg.delete().catch(() => {});
+        await deletePartnership(msg);
         if (needAlert) DelegateAlerts.deletePartnership(msg, invite, true);
         Log.Scan.messageWrong(msg.id, msg.author.id, invite, needAlert);
         continue;
       }
       else if (invite.guild) {
-        if (CheckedGuilds.has(invite.guild.id)) {
-          await msg.delete().catch(() => CoreLog.missingPermission("MANAGE_MESSAGES", { channelId: msg.channelId }));
+        if (CheckedGuilds.has(invite.guild.id) && ConfigEnv.DELETE_OLD_TEXTS) {
+          await deletePartnership(msg);
           Log.Scan.messageDuplicate(msg.id, msg.author.id);
           continue;
         }

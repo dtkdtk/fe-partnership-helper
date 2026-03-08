@@ -66,6 +66,7 @@ async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
   Log.GeneralScan.begin();
   ChannelIndex = miscDbRecord.last_general_scan_channel
     ? Channels.findIndex(it => it.id == miscDbRecord.last_general_scan_channel) : 0;
+  if (ChannelIndex < 0) ChannelIndex = 0;
   
   const delayedExecutor = async (): Promise<void> => {
     if (GeneralScanPaused) return;

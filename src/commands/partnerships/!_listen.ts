@@ -2,6 +2,7 @@ import {
   clearOldPartnerships,
   ConditionErrNames, ConditionErrno,
   DelegateAlerts,
+  deletePartnership,
   getDelegateStats,
   getServerData,
   incrementDelegateStats, initDelegateStats,
@@ -54,7 +55,7 @@ export default {
 
     //Более точечный/гарантированный вариант в сравнении с clearOldPartnerships().
     if (!isNewPartnership && serverData.message_id && ConfigEnv.DELETE_OLD_TEXTS)
-      deleteOldPartnership(ctx, serverData.message_id);
+      deletePreviousText(ctx, serverData.message_id);
 
     serverData.message_id = ctx.id;
     const prevPartnerID = lastDatedVal(serverData.partners);
@@ -205,9 +206,9 @@ async function _sendError(ctx: eds.CommandContext<"text">, errno: ConditionErrno
   if (deleteResult != null) DelegateAlerts.deletePartnership(ctx, errno);
 }
 
-async function deleteOldPartnership(ctx: CommandContext<"text">, messageId: string) {
+async function deletePreviousText(ctx: CommandContext<"text">, messageId: string) {
   const message = await eds.sfMessage(ctx, messageId);
   if (!message) return;
-  message.delete().catch(() => {});
+  deletePartnership(message);
   Log.Listen.messageOld(messageId, ctx.id);
 }

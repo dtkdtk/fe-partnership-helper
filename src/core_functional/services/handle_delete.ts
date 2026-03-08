@@ -1,5 +1,5 @@
 import { AsceticInvite, decrementDelegateStats, getDelegateStats, getServerData, updateServerData_byInvite } from "#core_functional";
-import { BotCache, ConfigEnv, MessageInvites } from "#corelib";
+import { BotCache, ConfigEnv, CoreLog, MessageInvites } from "#corelib";
 import { eds } from "@eds-fw/framework";
 import { GuildTextBasedChannel, Message } from "discord.js";
 import { validateConditions } from "./check_conditions.js";
@@ -53,4 +53,9 @@ export async function onPartnershipDelete(message: Message<true>) {
     await decrementDelegateStats(message.author.id, message.createdTimestamp);
   }
   Log.Listen.externalDelete(message.id, message.author.id);
+}
+
+export function deletePartnership(message: Message) {
+  BotCache.set(`partnership $$ ${message.id} $$ sudo_deleted`, true);
+  return message.delete().catch(() => CoreLog.missingPermission("MANAGE_MESSAGES", { channelId: message.channelId }));
 }

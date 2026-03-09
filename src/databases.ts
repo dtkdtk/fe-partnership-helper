@@ -2,6 +2,7 @@ import * as nedb from "@seald-io/nedb";
 import { Collection } from "discord.js";
 import NodeCache from "node-cache";
 import type { AsceticInvite, DelegateStats, PartnerData, ServerBlacklistData, ServerData } from "#core_functional";
+import { join as joinPath } from "path";
 const Datastore = nedb.default as unknown as typeof nedb.default.default;
 const AUTO_COMP_INTERVAL = 1 * 60 * 60 * 1000; //1 час
 
@@ -17,43 +18,51 @@ export interface MiscDbData {
   no_total_delegates: string[];
 }
 
+export const CommonDatabaseDir = "database";
+
+export const DelegationStats_DBFile = "delegation_stats.db";
 export const DB_DelegationStats = new Datastore<DelegateStats>({
-  filename: "./database/delegation_stats.db",
+  filename: joinPath(".", CommonDatabaseDir, DelegationStats_DBFile),
   inMemoryOnly: false,
   autoload: true,
 });
 DB_DelegationStats.setAutocompactionInterval(AUTO_COMP_INTERVAL);
 
+export const ServersData_DBFile = "servers_data.db";
 export const DB_ServersData = new Datastore<ServerData>({
-  filename: "./database/servers_data.db",
+  filename: joinPath(".", CommonDatabaseDir, ServersData_DBFile),
   inMemoryOnly: false,
   autoload: true,
 });
 DB_ServersData.setAutocompactionInterval(AUTO_COMP_INTERVAL);
 
+export const PartnersData_DBFile = "partners_data.db";
 export const DB_PartnersData = new Datastore<PartnerData>({
-  filename: "./database/partners_data.db",
+  filename: joinPath(".", CommonDatabaseDir, PartnersData_DBFile),
   inMemoryOnly: false,
   autoload: true,
 });
 DB_PartnersData.setAutocompactionInterval(AUTO_COMP_INTERVAL);
 
+export const ServersBlacklist_DBFile = "servers_blacklist.db";
 export const DB_ServersBlacklist = new Datastore<ServerBlacklistData>({
-  filename: "./database/servers_blacklist.db",
+  filename: joinPath(".", CommonDatabaseDir, ServersBlacklist_DBFile),
   inMemoryOnly: false,
   autoload: true,
 });
 DB_ServersBlacklist.setAutocompactionInterval(AUTO_COMP_INTERVAL);
 
+export const Misc_DBFile = "misc.db";
 export const DB_Misc = new Datastore<MiscDbData>({
-  filename: "./database/misc.db",
+  filename: joinPath(".", CommonDatabaseDir, Misc_DBFile),
   inMemoryOnly: false,
   autoload: true,
 });
 DB_Misc.setAutocompactionInterval(AUTO_COMP_INTERVAL);
 
+export const InvitesCache_DBFile = "invites_cache.db";
 export const DB_InvitesCache = new Datastore<AsceticInvite | {}>({
-  filename: "./database/invites_cache.db",
+  filename: joinPath(".", CommonDatabaseDir, InvitesCache_DBFile),
   inMemoryOnly: false,
   autoload: true,
 });

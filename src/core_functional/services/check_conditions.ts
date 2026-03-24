@@ -76,7 +76,8 @@ export async function fetchInvite(
     const maybeCached = await InvitesCache.get(iCode);
     const needToRefresh = forceCacheRefresh
       && maybeCached && typeof maybeCached == "object"
-      && Date.now() - maybeCached.lastUpdateTimestamp > InvitesCache.ExpiryDuration;
+      && (Date.now() - maybeCached.lastUpdateTimestamp > InvitesCache.ExpiryDuration
+        || maybeCached.temporary);
     if (needToRefresh || maybeCached === null)
       rawFetchResults.push(await Promise.race([
         client.fetchInvite(iCode)

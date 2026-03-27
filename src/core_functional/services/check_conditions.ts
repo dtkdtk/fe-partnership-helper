@@ -5,6 +5,9 @@ import { Client, Message } from "discord.js";
 import { botConfig } from "../../bot_config.js";
 
 
+
+const RATE_LIMIT_TIMEOUT = 10_000; //10 sec
+
 export enum ConditionErrno {
   just_return,
   no_invite,
@@ -83,7 +86,7 @@ export async function fetchInvite(
         client.fetchInvite(iCode)
           .then(invite => invite.guild ? AsceticInvite.from(invite) : ConditionErrno.unfetched_invite)
           .catch(() => (InvitesCache.setUnfetched(iCode), ConditionErrno.unfetched_invite)),
-        wait(5_000).then(() => ConditionErrno.rate_limit),
+        wait(RATE_LIMIT_TIMEOUT).then(() => ConditionErrno.rate_limit),
       ]));
     else if (maybeCached === InvitesCache.Unfetched)
       rawFetchResults.push(ConditionErrno.unfetched_invite);

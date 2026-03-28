@@ -3,6 +3,7 @@ import moment from "moment";
 import { ConditionErrno } from "./check_conditions.js";
 import { ResultState } from "./general_scan.js";
 
+
 export namespace Log {
   export namespace Listen {
     export function messageWrong(messageId: string, delegateId: string, errno: number) {

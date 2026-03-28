@@ -1,5 +1,5 @@
 import { bulkUpdateDgStats, initServerData_byInvite, InvitesCache } from "#core_functional";
-import { ConfigEnv, DateRecord, DB_DelegationStats, DB_Misc, DB_ServersData, getDate, MiscDbData, MSK, rateLimitSafe } from "#corelib";
+import { ConfigEnv, DateRecord, DB_Misc, getDate, MiscDbData, MSK, rateLimitSafe } from "#corelib";
 import { eds } from "@eds-fw/framework";
 import { Client, Collection, FetchMessagesOptions, GuildTextBasedChannel, Message } from "discord.js";
 import { ConditionErrno, extractInviteCodes, validateConditions } from "./check_conditions.js";

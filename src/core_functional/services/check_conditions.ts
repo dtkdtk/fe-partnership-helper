@@ -1,9 +1,7 @@
 import { AsceticInvite, getBlacklistData, getServerData, InvitesCache } from "#core_functional";
 import { ConfigEnv, getDate, MSK, rateLimitSafe } from "#corelib";
-import { wait } from "@eds-fw/framework";
 import { Client, Message } from "discord.js";
 import { botConfig } from "../../bot_config.js";
-
 
 
 export enum ConditionErrno {

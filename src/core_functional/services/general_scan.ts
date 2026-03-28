@@ -94,7 +94,7 @@ async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
 
     const timeoutMs = Math.max(FETCH_SERIES_INTERVAL * result.invitesFetched, MINIMAL_INTERVAL);
     if (FetchTimer) clearTimeout(FetchTimer);
-    FetchTimer = setTimeout(delayedExecutor, 4444);
+    FetchTimer = setTimeout(delayedExecutor, timeoutMs);
     Log.GeneralScan.timeout(timeoutMs, result.invitesFetched);
   };
   delayedExecutor();

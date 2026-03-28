@@ -79,7 +79,6 @@ async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
     ChannelIndex %= Channels.length;
     lastMessage ??= miscDbRecord.last_general_scan_message[channel.id];
     const result = await scanChannel(channel, lastMessage);
-console.log(lastMessage, ChannelIndex, result, MessageQueue?.size, MessageIndex)
     lastMessage = result.lastMessage;
     await dbApply(result, channel.id);
     if (result.rateLimited) {

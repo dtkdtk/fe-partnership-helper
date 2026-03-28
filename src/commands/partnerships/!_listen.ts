@@ -60,7 +60,7 @@ export default {
     serverData.message_id = ctx.id;
     const prevPartnerID = lastDatedVal(serverData.partners);
     updateServerData_byInvite(serverData, invite, ctx.user.id, ctx.createdTimestamp);
-    markAsLatest(ctx.id, ctx.channelId);
+    markAsLatest(ctx.channelId, ctx.id);
     const delegateStats = (
       await getDelegateStats(ctx.user.id) ?? await initDelegateStats(ctx.user.id),
       await incrementDelegateStats(ctx.user.id, +MSK())

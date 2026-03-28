@@ -1,5 +1,5 @@
 import { bulkUpdateDgStats, initServerData_byInvite, InvitesCache } from "#core_functional";
-import { ConfigEnv, DateRecord, DB_DelegationStats, DB_Misc, DB_ServersData, getDate, MiscDbData, MSK } from "#corelib";
+import { ConfigEnv, DateRecord, DB_DelegationStats, DB_Misc, DB_ServersData, getDate, MiscDbData, MSK, rateLimitSafe } from "#corelib";
 import { eds } from "@eds-fw/framework";
 import { Client, Collection, FetchMessagesOptions, GuildTextBasedChannel, Message } from "discord.js";
 import { ConditionErrno, extractInviteCodes, validateConditions } from "./check_conditions.js";
@@ -101,10 +101,7 @@ async function scanChannel(channel: GuildTextBasedChannel, lastMessage?: string)
 
   if (!MessageQueue || MessageIndex == MessageQueue.size) {
     MessageQueue = undefined;
-    const _messages = await Promise.race([
-      channel.messages.fetch(fetchOptions).catch(() => null),
-      eds.wait(3_000).then(() => null)
-    ]);
+    const _messages = await rateLimitSafe(channel.messages.fetch(fetchOptions));
     if (_messages === null)
       return {
         rateLimited: true,
@@ -188,16 +185,12 @@ let PreviousData: ResultState | undefined;
 
 async function dbApply(updated: ResultState, channelId: string) {
   if (!updated.changesMap?.size && updated.lastMessage == PreviousData?.lastMessage) return;
-  const updatePromises: Promise<unknown>[] = [];
   if (updated.lastMessage)
-    updatePromises.push(DB_Misc.updateAsync({ _id: "1" }, { $set: { [`last_general_scan_message.${channelId}`]: updated.lastMessage } }));
+    await DB_Misc.updateAsync({ _id: "1" },
+      { $set: { [`last_general_scan_message.${channelId}`]: updated.lastMessage } });
   if (updated.changesMap)
     for (const [id, dateRec] of updated.changesMap.entries())
-      updatePromises.push(bulkUpdateDgStats(id, dateRec));
-  await Promise.all(updatePromises);
+      await bulkUpdateDgStats(id, dateRec);
   PreviousData = updated;
   Log.GeneralScan.applyChanges(updated);
-  DB_ServersData.compactDatafile();
-  DB_DelegationStats.compactDatafile();
-  DB_Misc.compactDatafile();
 }

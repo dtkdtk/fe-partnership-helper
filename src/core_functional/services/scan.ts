@@ -2,7 +2,6 @@ import { deletePartnership, getServerData, incrementDelegateStats, initServerDat
 import { ConfigEnv, DB_Misc, MessageInvites, MSK, resources } from "#corelib";
 import eds from "@eds-fw/framework";
 import { Client, FetchMessagesOptions, GuildTextBasedChannel, Message } from "discord.js";
-import { CoreLog } from "../../logging.js";
 import { DelegateAlerts } from "./alerts.js";
 import { ConditionErrno, validateConditions } from "./check_conditions.js";
 import { runGeneralScan } from "./general_scan.js";

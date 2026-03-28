@@ -28,12 +28,12 @@ async function scanPartnershipChannel(client: Client, channel: GuildTextBasedCha
   let lastScannedMessageId: string | undefined = _miscDbData.last_scanned_message[channel.id];
   let lastScanTimestamp = lastScannedMessageId ?
     (await eds.sfMessage(channel.messages, lastScannedMessageId))?.createdTimestamp ?? 0 : 0;
-  const silentMode = !lastScannedMessageId && !lastScanTimestamp;
+  const readonlyMode = !lastScannedMessageId && !lastScanTimestamp;
   const notificationWatermark = MSK().date(-3); //за последние 3 дня
 
   const performScan = async function() {
     const fetchOptions: FetchMessagesOptions = { limit: 100, cache: false };
-    if (!silentMode) fetchOptions.after = lastScannedMessageId;
+    if (!readonlyMode) fetchOptions.after = lastScannedMessageId;
     const messages = await channel.messages.fetch(fetchOptions).catch(() => {});
     if (!messages?.size) return false;
     messages.sort((A, B) => B.createdTimestamp - A.createdTimestamp); //Начинаем с новых
@@ -48,7 +48,7 @@ async function scanPartnershipChannel(client: Client, channel: GuildTextBasedCha
       if (msg.id == lastScannedMessageId) return false;
 
       else if (typeof invite === "number") {
-        const needAlert = !silentMode && MSK(msg.createdTimestamp).isAfter(notificationWatermark);
+        const needAlert = !readonlyMode && MSK(msg.createdTimestamp).isAfter(notificationWatermark);
         await deletePartnership(msg);
         if (needAlert) DelegateAlerts.deletePartnership(msg, invite, true);
         Log.Scan.messageWrong(msg.id, msg.author.id, invite, needAlert);
@@ -75,14 +75,14 @@ async function scanPartnershipChannel(client: Client, channel: GuildTextBasedCha
           lastScannedMessageId = msg.id;
           lastScanTimestamp = msg.createdTimestamp;
         }
-        if (!silentMode) {
-          deferReaction(msg);
+        if (!readonlyMode) {
           incrementDelegateStats(msg.author.id, msg.createdTimestamp);
+          deferReaction(msg);
         }
-        Log.Scan.messageOk(msg.id, msg.author.id, silentMode);
+        Log.Scan.messageOk(msg.id, msg.author.id, readonlyMode);
       }
     }
-    return !silentMode ? true : false;
+    return !readonlyMode; //to continue?
   }
 
   if (!lastScannedMessageId && !lastScanTimestamp) Log.Scan.silentMode();

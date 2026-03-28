@@ -6,14 +6,18 @@ import { ConditionErrno, extractInviteCodes, validateConditions } from "./check_
 import { Log } from "./log.js";
 
 
-const WAIT_AFTER_RATELIMIT = 10 * 60 * 1000;
-const FETCH_INTERVAL = Math.round((24 * 60 * 60 * 1000) / ConfigEnv.GENERAL_SCAN_DAILY_LIMIT);
+const WAIT_AFTER_RATELIMIT = 10 * 60 * 1000; //10 min
+const MINIMAL_INTERVAL = 5_000; //5 sec; минимальный интервал между партиями
+const FETCH_SINGLE_INTERVAL = 5_000; //5 sec; интервал между каждыми фетчами ссылок
+//Динамический интервал между каждыми партиями фетчей ссылок, для каждой ссылки.
+//Позволяет не достигать дневного лимита фетчей.
+const FETCH_SERIES_INTERVAL = Math.round((24 * 60 * 60 * 1000) / ConfigEnv.GENERAL_SCAN_DAILY_LIMIT) - FETCH_SINGLE_INTERVAL;
 
 type StatsChangesMap = Map<string, DateRecord<number>>;
 export interface ResultState {
   lastMessage: string | undefined;
   changesMap: StatsChangesMap | undefined;
-  hasFetch: boolean;
+  invitesFetched: number;
   rateLimited?: boolean;
   scanFullyCompleted?: boolean;
 };
@@ -67,13 +71,15 @@ async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
   ChannelIndex = miscDbRecord.last_general_scan_channel
     ? Channels.findIndex(it => it.id == miscDbRecord.last_general_scan_channel) : 0;
   if (ChannelIndex < 0) ChannelIndex = 0;
-  
+  let lastMessage: string | undefined;
+
   const delayedExecutor = async (): Promise<void> => {
     if (GeneralScanPaused) return;
     const channel = Channels[ChannelIndex++];
     ChannelIndex %= Channels.length;
-    let lastMessage: string | undefined = miscDbRecord.last_general_scan_message[channel.id];
+    lastMessage ??= miscDbRecord.last_general_scan_message[channel.id];
     const result = await scanChannel(channel, lastMessage);
+console.log(lastMessage, ChannelIndex, result, MessageQueue?.size, MessageIndex)
     lastMessage = result.lastMessage;
     await dbApply(result, channel.id);
     if (result.rateLimited) {
@@ -87,31 +93,37 @@ async function performGeneralScan(client: Client, miscDbRecord: MiscDbData) {
       return;
     }
 
+    const timeoutMs = Math.max(FETCH_SERIES_INTERVAL * result.invitesFetched, MINIMAL_INTERVAL);
     if (FetchTimer) clearTimeout(FetchTimer);
-    FetchTimer = setTimeout(delayedExecutor, FETCH_INTERVAL);
+    FetchTimer = setTimeout(delayedExecutor, 4444);
+    Log.GeneralScan.timeout(timeoutMs, result.invitesFetched);
   };
   delayedExecutor();
 }
 
 async function scanChannel(channel: GuildTextBasedChannel, lastMessage?: string): Promise<ResultState> {
-  let hasFetch = false;
+  let invitesFetched = 0;
   const changesMap: StatsChangesMap = new Map();
   const fetchOptions: FetchMessagesOptions = { limit: 100, cache: false };
   if (lastMessage) fetchOptions.before = lastMessage;
 
-  if (!MessageQueue || MessageIndex == MessageQueue.size) {
+  if (!MessageQueue || MessageIndex >= MessageQueue.size) {
     MessageQueue = undefined;
-    const _messages = await rateLimitSafe(channel.messages.fetch(fetchOptions));
+    MessageIndex = 0;
+    const _messages = await rateLimitSafe(channel.messages.fetch(fetchOptions))
+      .catch(() => null);
     if (_messages === null)
       return {
         rateLimited: true,
-        hasFetch, lastMessage,
+        invitesFetched,
+        lastMessage,
         changesMap: undefined,
       };
     if (_messages.size === 0)
       return {
         scanFullyCompleted: true,
-        hasFetch, lastMessage,
+        invitesFetched,
+        lastMessage,
         changesMap: undefined,
       };
     _messages.sort((A, B) => B.createdTimestamp - A.createdTimestamp);
@@ -122,20 +134,20 @@ async function scanChannel(channel: GuildTextBasedChannel, lastMessage?: string)
     if (GeneralScanPaused)
       return {
         scanFullyCompleted: true,
-        hasFetch, lastMessage, changesMap,
+        invitesFetched, lastMessage, changesMap,
       };
     const msg = MessageQueue.at(MessageIndex)!;
     MessageIndex++;
     
     const inviteCode = extractInviteCodes(msg.content)[0];
     const isCached = inviteCode ? (await InvitesCache.get(inviteCode)) !== null : null;
-    
+
     const invite = await validateConditions(msg, { justGetInvite: true, checkCooldown: false });
     const date = getDate(MSK(msg.createdTimestamp));
     if (invite === ConditionErrno.rate_limit)
       return {
         rateLimited: true,
-        hasFetch, lastMessage, changesMap,
+        invitesFetched, lastMessage, changesMap,
       };
     else if (invite === ConditionErrno.just_return
       || invite === ConditionErrno.no_invite
@@ -171,20 +183,19 @@ async function scanChannel(channel: GuildTextBasedChannel, lastMessage?: string)
     lastMessage = msg.id;
     Log.GeneralScan.messageOk(msg.id, msg.author.id, inviteCode, isCached);
     if (!isCached) {
-      hasFetch = true;
-      break;
+      invitesFetched++;
+      await eds.wait(FETCH_SINGLE_INTERVAL);
     }
-    await eds.wait(1000);
   }
   return {
-    hasFetch, lastMessage, changesMap,
+    invitesFetched, lastMessage, changesMap,
   };
 }
 
 let PreviousData: ResultState | undefined;
 
 async function dbApply(updated: ResultState, channelId: string) {
-  if (!updated.changesMap?.size && updated.lastMessage == PreviousData?.lastMessage) return;
+  if (!updated.changesMap?.size && (!PreviousData || updated.lastMessage == PreviousData?.lastMessage)) return;
   if (updated.lastMessage)
     await DB_Misc.updateAsync({ _id: "1" },
       { $set: { [`last_general_scan_message.${channelId}`]: updated.lastMessage } });

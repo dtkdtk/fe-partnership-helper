@@ -104,6 +104,9 @@ export namespace Log {
     export function stopOnComplete() {
       logger.warn("GeneralScan: SUCCESSFULLY COMPLETED !!!");
     }
+    export function timeout(waitDelay: number, invitesFetched: number) {
+      logger.trace({ waitDelay, invitesFetched }, "GeneralScan: wait some time between series");
+    }
 
     export function messageOk(
       messageId: string,

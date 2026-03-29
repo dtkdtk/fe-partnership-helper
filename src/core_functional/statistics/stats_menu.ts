@@ -1,6 +1,4 @@
 import {
-  build14datesChart,
-  build365datesSmoothChart,
   getDelegateStats,
 } from "#core_functional";
 import {
@@ -26,12 +24,16 @@ import {
   MessageFlags,
   User,
 } from "discord.js";
+import { build14datesChart } from "./chart14.js";
+import { build30datesChart } from "./chart30.js";
+import { build365datesSmoothChart } from "./chart365_smooth.js";
 import { build7datesChart } from "./chart7.js";
 
 export enum StatsInterval {
   TODAY = 1,
   ONE_WEEK = 7,
   TWO_WEEKS = 14,
+  MONTH = 30,
   YEAR = 365,
 }
 
@@ -44,8 +46,17 @@ const StatsIntervalNames_Dative: Record<StatsInterval, string> = {
   [StatsInterval.TODAY]: "сегодня",
   [StatsInterval.ONE_WEEK]: "неделю",
   [StatsInterval.TWO_WEEKS]: "две недели",
+  [StatsInterval.MONTH]: "месяц",
   [StatsInterval.YEAR]: "год",
 };
+
+const StatsIntervalIndexes = [
+  StatsInterval.TODAY,
+  StatsInterval.ONE_WEEK,
+  StatsInterval.TWO_WEEKS,
+  StatsInterval.MONTH,
+  StatsInterval.YEAR
+];
 
 const components = [
   {
@@ -70,6 +81,13 @@ const components = [
         style: ButtonStyle.Secondary,
         customId: "delegation-stats.mode." + StatsInterval.TWO_WEEKS,
         label: "За 2 недели",
+        emoji: emoji(resources.button_icons.calendar),
+      },
+      {
+        type: ComponentType.Button,
+        style: ButtonStyle.Secondary,
+        customId: "delegation-stats.mode." + StatsInterval.MONTH,
+        label: "За месяц",
         emoji: emoji(resources.button_icons.calendar),
       },
       {
@@ -106,6 +124,23 @@ async function getDepartmentIntervalStats(intervalDays: number): Promise<{
     delegateStats.set(stat._id, counts);
   }
   return { delegateStats, datedCounts: dailyTotals };
+}
+
+
+
+function getIntervalChart(interval: StatsInterval, values: number[], dates: string[]) {
+  switch (interval) {
+    case StatsInterval.TODAY:
+      return null;
+    case StatsInterval.ONE_WEEK:
+      return build7datesChart(values, dates);
+    case StatsInterval.TWO_WEEKS:
+      return build14datesChart(values, dates);
+    case StatsInterval.MONTH:
+      return build30datesChart(values, dates);
+    case StatsInterval.YEAR:
+      return build365datesSmoothChart(values, dates);
+  }
 }
 
 
@@ -154,7 +189,6 @@ export async function statsMenuSource(
   let intervalPartnerships = 0;
   let totalPartnerships: null | number = null;
   let chart: Canvas | null = null;
-  let chartDates: string[] = [];
 
   if (target === StatsTarget.DEPARTMENT) {
     const { delegateStats, datedCounts: dailyTotals } =
@@ -179,37 +213,16 @@ export async function statsMenuSource(
       }
     }
 
-    chartDates = Array.from(dailyTotals.keys()).sort(_sortDates);
+    const chartDates = Array.from(dailyTotals.keys()).sort(_sortDates);
     const chartValues = chartDates.map((date) => dailyTotals.get(date) ?? 0);
-    switch (interval) {
-      case StatsInterval.ONE_WEEK:
-        chart = build7datesChart(chartValues, chartDates);
-        break;
-      case StatsInterval.TWO_WEEKS:
-        chart = build14datesChart(chartValues, chartDates);
-        break;
-      case StatsInterval.YEAR:
-        chart = build365datesSmoothChart(chartValues, chartDates);
-        break;
-    }
+    chart = getIntervalChart(interval, chartValues, chartDates);
   }
 
 
   else if (target === StatsTarget.DELEGATE && targetUser) {
     /* Статистика за сегодня есть только у всего отдела */
     const stats = await getDelegateStatsData(targetUser.id, interval);
-    chartDates = stats.dates;
-    switch (interval) {
-        case StatsInterval.ONE_WEEK:
-          chart = build7datesChart(stats.numbers, stats.dates);
-          break;
-        case StatsInterval.TWO_WEEKS:
-          chart = build14datesChart(stats.numbers, stats.dates);
-          break;
-        case StatsInterval.YEAR:
-          chart = build365datesSmoothChart(stats.numbers, stats.dates);
-          break;
-      }
+    chart = getIntervalChart(interval, stats.numbers, stats.dates);
     intervalPartnerships = stats.todayPartnerships;
     totalPartnerships = stats.totalPartnerships;
   }
@@ -241,8 +254,7 @@ export async function statsMenuSource(
     flags: [MessageFlags.Ephemeral],
   };
 
-  let currentButtonIndex = [StatsInterval.TODAY, StatsInterval.ONE_WEEK,
-    StatsInterval.TWO_WEEKS, StatsInterval.YEAR].indexOf(interval);
+  let currentButtonIndex = StatsIntervalIndexes.indexOf(interval);
 
   localComponents[0].components[currentButtonIndex].disabled = true;
   localComponents[0].components[currentButtonIndex].style = ButtonStyle.Success;

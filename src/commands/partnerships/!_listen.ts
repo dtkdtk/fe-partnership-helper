@@ -43,8 +43,6 @@ export default {
 
     if (invite.temporary)
       warnings.push(`## ${resources.emoji.warning} **ВНИМАНИЕ! Ссылка временная. Попросите партнёра заменить её.**`);
-    if (minimalMembers && invite.memberCount && invite.memberCount < minimalMembers)
-      warnings.push(`## ${resources.emoji.warning} **ВНИМАНИЕ! На сервере нет [${minimalMembers}] участников.**`);
 
     if (ConfigEnv.DELETE_OLD_TEXTS) clearOldPartnerships(ctx, invite);
     MessageInvites.set(ctx.id, invite.guild.id);

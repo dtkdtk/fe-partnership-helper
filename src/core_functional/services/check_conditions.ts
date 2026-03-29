@@ -13,6 +13,7 @@ export enum ConditionErrno {
   blacklist,
   this_server,
   rate_limit,
+  not_enough_members,
 }
 export const ConditionErrNames: Record<ConditionErrno, string> = {
   [ConditionErrno.just_return]: "*just*",
@@ -22,7 +23,8 @@ export const ConditionErrNames: Record<ConditionErrno, string> = {
   [ConditionErrno.cooldown]: `**Кулдаун.** Каждый сервер можно публиковать только \`1 раз\` в день. Данный сервер уже публиковался сегодня`,
   [ConditionErrno.blacklist]: `**О НЕЕЕТ! Данный сервер в Чёрном списке (ЧС).**`,
   [ConditionErrno.this_server]: `**Не балуйтесь!** Вы публикуете текст этого же сервера.`,
-  [ConditionErrno.rate_limit]: `**ОШИБКА ОШИБКА ОШИБКА ОШИБКА**\n**Бот улетел в рейт-лимит!** И временно не может обработать данный запрос.\nПодождите несколько минут.`,
+  [ConditionErrno.rate_limit]: `**ОШИБКА ОШИБКА ОШИБКА ОШИБКА**\n**Бот улетел в рейт-лимит! ((Либо у него просто скаканул пинг))** И временно не может обработать данный запрос.\nПодождите несколько минут.`,
+  [ConditionErrno.not_enough_members]: `**На сервере нет [${ConfigEnv.REQUIREMENT_MINIMAL_MEMBERS}] участников.**`,
 };
 
 export async function validateConditions(
@@ -46,6 +48,9 @@ export async function validateConditions(
   if (fetchedInvite.guild.id == message.guildId) return ConditionErrno.this_server;
   if (options?.justGetInvite) return fetchedInvite;
 
+  const minMembers = ConfigEnv.REQUIREMENT_MINIMAL_MEMBERS;
+  if (minMembers && fetchedInvite.memberCount && fetchedInvite.memberCount < minMembers)
+    return ConditionErrno.not_enough_members;
   const date = getDate(MSK(message.createdTimestamp));
   const serverData = await getServerData(fetchedInvite.guild.id);
   const blacklistData = await getBlacklistData(fetchedInvite.guild.id);

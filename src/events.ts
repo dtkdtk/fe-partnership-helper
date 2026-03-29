@@ -65,7 +65,7 @@ export default function initEventListeners(bot: eds.KnownRuntimeProperties) {
   bot.client.once("clientReady", async () => {
     CoreLog.ready();
     console.log("Делай со мной всё, что хочешь - я готов ко всему.");
-    createSlashCommands(eds.runtimeStorage);
+    createSlashCommands(bot.slashCommandsManager);
     if (BotCache.get("bot_firstStart") === true) {
       CoreLog.firstStart();
     }

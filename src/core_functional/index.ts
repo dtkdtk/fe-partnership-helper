@@ -12,8 +12,6 @@ export * from "./services/log.js"
 export * from "./services/partner_management.js"
 export * from "./services/scan.js"
 
-export * from "./statistics/chart14.js"
-export * from "./statistics/chart365_smooth.js"
 export * from "./statistics/stats_menu.js"
 
 export * from "./types.js"

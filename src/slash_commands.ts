@@ -1,13 +1,10 @@
 import type { eds } from "@eds-fw/framework";
 import {
-  ApplicationCommandType,
   ApplicationCommandOptionType,
+  ApplicationCommandType,
 } from "discord.js";
 
-export function createSlashCommands(runtimeStorage: typeof eds.runtimeStorage) {
-  const manager = runtimeStorage.get<eds.SlashCommandsManager>(
-    "slashCommandsManager"
-  );
+export function createSlashCommands(manager: eds.SlashCommandsManager) {
   manager.create({
     name: "био-делегата",
     description: "Биография делегата Империи",

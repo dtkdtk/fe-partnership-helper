@@ -151,7 +151,7 @@ async function getDelegateStatsData(
 ): Promise<{
   numbers: number[];
   totalPartnerships: number;
-  todayPartnerships: number;
+  intervalPartnerships: number;
   dates: string[];
 }> {
   const values = await getDelegateStats(userId);
@@ -160,17 +160,16 @@ async function getDelegateStatsData(
     const numbers = dates
       .map((D) => values.activity[D] ?? 0)
       .map((num) => (num < 0 ? 0 : num));
+    const intervalPartnerships = numbers.reduce((acc, X) => acc + X, 0)
     return {
-      numbers,
       totalPartnerships: values.total_partnerships,
-      todayPartnerships: values.activity[getDate(MSK())] ?? 0,
-      dates,
+      numbers, intervalPartnerships, dates,
     };
   }
   return {
     numbers: Array(interval).fill(0),
     totalPartnerships: 0,
-    todayPartnerships: 0,
+    intervalPartnerships: 0,
     dates,
   };
 }
@@ -223,7 +222,7 @@ export async function statsMenuSource(
     /* Статистика за сегодня есть только у всего отдела */
     const stats = await getDelegateStatsData(targetUser.id, interval);
     chart = getIntervalChart(interval, stats.numbers, stats.dates);
-    intervalPartnerships = stats.todayPartnerships;
+    intervalPartnerships = stats.intervalPartnerships;
     totalPartnerships = stats.totalPartnerships;
   }
 

@@ -63,6 +63,9 @@ export namespace Log {
       ScanStart = MSK();
       logger.info("Scan: START");
     }
+    export function newCycle() {
+      logger.info("Scan: new cycle (continuing)");
+    }
     export function end() {
       const now = MSK();
       const diff = moment.duration(now.diff(ScanStart));
@@ -114,7 +117,10 @@ export namespace Log {
       inviteCode: string,
       isCached: boolean | null,
     ) {
-      logger.trace({ messageId, delegateId, inviteCode, isCached }, "GeneralScan: successful partnership, respect");
+      logger.trace(
+        { messageId, delegateId, inviteCode, isCached },
+        "GeneralScan: successful partnership, respect"
+      );
     }
     export function messageDelete(
       messageId: string,
@@ -123,7 +129,10 @@ export namespace Log {
       inviteCode: string | null = null,
       isCached: boolean | null = null,
     ) {
-      logger.trace({ messageId, delegateId, errno, inviteCode, isCached }, "GeneralScan: delete partnership");
+      logger.trace(
+        { messageId, delegateId, errno, inviteCode, isCached },
+        "GeneralScan: delete partnership"
+      );
     }
     export function ignoreUnfetched(
       messageId: string,
@@ -131,7 +140,10 @@ export namespace Log {
       inviteCode: string,
       isCached: boolean | null,
     ) {
-      logger.trace({ messageId, delegateId, inviteCode, isCached }, "GeneralScan: ignore partnership with unfetched invite");
+      logger.trace(
+        { messageId, delegateId, inviteCode, isCached },
+        "GeneralScan: ignore partnership with unfetched invite"
+      );
     }
     export function applyChanges(state: ResultState) {
       const { lastMessage } = state;
@@ -152,6 +164,31 @@ export namespace Log {
     }
     export function removeBlacklist(guildId: string, adminId: string) {
       logger.warn({ guildId, adminId }, "EditServer: remove server from blacklist");
+    }
+  }
+
+  export namespace ConditionsCheck {
+    export function checking(
+      messageId: string,
+      messageTimestamp: number,
+      delegateId: string,
+      inviteCodes: string[],
+      options: object,
+    ) {
+      logger.trace(
+        { messageId, messageTimestamp, delegateId, inviteCodes, options },
+        "ConditionsCheck: checking invite..."
+      );
+    }
+    export function wrong(
+      messageId: string,
+      errno: ConditionErrno,
+      guildId: string | null = null,
+    ) {
+      logger.trace({ messageId, errno, guildId }, "ConditionsCheck: wrong partnership");
+    }
+    export function success(messageId: string, guildId: string) {
+      logger.trace({ messageId, guildId }, "ConditionsCheck: successful partnership");
     }
   }
 }

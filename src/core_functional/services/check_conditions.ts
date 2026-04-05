@@ -1,4 +1,4 @@
-import { AsceticInvite, getBlacklistData, getServerData, InvitesCache } from "#core_functional";
+import { AsceticInvite, getBlacklistData, getServerData, InvitesCache, Log } from "#core_functional";
 import { ConfigEnv, getDate, MSK, rateLimitSafe } from "#corelib";
 import { Client, Message } from "discord.js";
 import { botConfig } from "../../bot_config.js";
@@ -42,26 +42,48 @@ export async function validateConditions(
   const inviteMatches = extractInviteCodes(message.content);
   if (!inviteMatches?.length) return ConditionErrno.no_invite;
 
+  Log.ConditionsCheck.checking(message.id, message.createdTimestamp, message.author.id,
+    inviteMatches, options ?? {});
+
   const fetchedInvite = await fetchInvite(inviteMatches, message.client, options?.forceCacheRefresh);
-  if (typeof fetchedInvite == "number") return fetchedInvite;
-  if (!fetchedInvite.guild) return ConditionErrno.unfetched_invite;
-  if (fetchedInvite.guild.id == message.guildId) return ConditionErrno.this_server;
-  if (options?.justGetInvite) return fetchedInvite;
+  if (typeof fetchedInvite == "number") {
+    Log.ConditionsCheck.wrong(message.id, fetchedInvite, null);
+    return fetchedInvite;
+  }
+  if (!fetchedInvite.guild) {
+    Log.ConditionsCheck.wrong(message.id, ConditionErrno.unfetched_invite, null);
+    return ConditionErrno.unfetched_invite;
+  }
+  if (fetchedInvite.guild.id == message.guildId) {
+    Log.ConditionsCheck.wrong(message.id, ConditionErrno.this_server, fetchedInvite.guild.id);
+    return ConditionErrno.this_server;
+  }
+  if (options?.justGetInvite) {
+    Log.ConditionsCheck.success(message.id, fetchedInvite.guild.id);
+    return fetchedInvite;
+  }
 
   const minMembers = ConfigEnv.REQUIREMENT_MINIMAL_MEMBERS;
-  if (minMembers && fetchedInvite.memberCount && fetchedInvite.memberCount < minMembers)
+  if (fetchedInvite.memberCount && fetchedInvite.memberCount < minMembers) {
+    Log.ConditionsCheck.wrong(message.id, ConditionErrno.not_enough_members, fetchedInvite.guild.id);
     return ConditionErrno.not_enough_members;
+  }
   const date = getDate(MSK(message.createdTimestamp));
   const serverData = await getServerData(fetchedInvite.guild.id);
   const blacklistData = await getBlacklistData(fetchedInvite.guild.id);
-  if (blacklistData) return ConditionErrno.blacklist;
+  if (blacklistData) {
+    Log.ConditionsCheck.wrong(message.id, ConditionErrno.blacklist, fetchedInvite.guild.id);
+    return ConditionErrno.blacklist;
+  }
   if (ConfigEnv.REQUIREMENT_ONCE_PER_DAY
     && (options?.checkCooldown ?? true)
     && getDate(MSK(serverData?.timestamp ?? 1)) == date
   ) {
+    Log.ConditionsCheck.wrong(message.id, ConditionErrno.cooldown, fetchedInvite.guild.id);
     return ConditionErrno.cooldown;
   }
 
+  Log.ConditionsCheck.success(message.id, fetchedInvite.guild.id);
   return fetchedInvite;
 }
 

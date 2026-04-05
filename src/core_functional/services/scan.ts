@@ -13,6 +13,7 @@ import {
   MessageInvites,
   MiscDbData,
   MSK,
+  rateLimitSafe,
   resources,
 } from "#corelib";
 import eds from "@eds-fw/framework";
@@ -41,6 +42,7 @@ export async function performPartnershipsScan(client: Client) {
     await new PartnershipChannelScanner(client, channel).start();
     CheckedGuilds.clear();
   }
+  runGeneralScan(client);
 }
 
 class PartnershipChannelScanner {
@@ -89,20 +91,22 @@ class PartnershipChannelScanner {
     while (toContinue) {
       toContinue = await this.performScan();
       await eds.wait(3_000);
+      if (toContinue) Log.Scan.newCycle();
     }
     Log.Scan.end();
 
     if (this.lastScannedMessageId)
       markAsLatest(this.channel.id, this.lastScannedMessageId);
-    runGeneralScan(this.client);
+
+    await this.postCleanup();
   }
 
   private async performScan(): Promise<boolean> {
     if (!this.readonlyMode) this.fetchOptions.after = this.lastScannedMessageId;
-    const messages = await this.channel.messages
-      .fetch(this.fetchOptions)
-      .catch(() => {});
+    const messages = await rateLimitSafe(
+      this.channel.messages.fetch(this.fetchOptions)).catch(() => {});
     if (!messages?.size) return false;
+console.log(messages.map((m, i) => [i, m.content]).join("\n"))
     messages.sort((A, B) => B.createdTimestamp - A.createdTimestamp); //Начинаем с новых
 
     //Коллекция начинается с самых новых сообщений
@@ -120,7 +124,10 @@ class PartnershipChannelScanner {
       await deletePartnership(msg);
       return;
     }
-    if (msg.id == this.lastScannedMessageId) return true;
+    if (msg.id == this.lastScannedMessageId) {
+      await this.checkAllDayTexts();
+      return true;
+    }
     else if (typeof invite === "number") {
       await deletePartnership(msg);
       if (this.needAlert) DelegateAlerts.deletePartnership(msg, invite, true);
@@ -161,9 +168,7 @@ class PartnershipChannelScanner {
       await this.checkAllDayTexts();
       this.currentDayTexts.clear();
     }
-    else {
-      this.currentDayTexts.set(msg, invite.guild.id);
-    }
+    this.currentDayTexts.set(msg, invite.guild.id);
   }
 
   private async checkAllDayTexts() {
@@ -171,7 +176,8 @@ class PartnershipChannelScanner {
     //Теперь мы можем проверить, нет ли нарушений дневного КД.
     //Коллекция начинается со старых сообщений (начало дня)
     for (const [msg, guildId] of this.currentDayTexts.entries()) {
-      if (cooldownChecked.has(guildId)) {
+console.log(msg.content)
+      if (ConfigEnv.REQUIREMENT_ONCE_PER_DAY && cooldownChecked.has(guildId)) {
         await deletePartnership(msg);
         if (this.needAlert)
           DelegateAlerts.deletePartnership(msg, ConditionErrno.cooldown, true);
@@ -194,6 +200,15 @@ class PartnershipChannelScanner {
           deferReaction(msg);
         }
       }
+    }
+  }
+
+  private async postCleanup() {
+    const messages = await rateLimitSafe(
+      this.channel.messages.fetch({ limit: 100, cache: false })).catch(() => {});
+    if (!messages) return;
+    for (const msg of messages.values()) {
+      if (msg.author.bot) await deletePartnership(msg);
     }
   }
 }

@@ -45,10 +45,12 @@ export async function performPartnershipsScan(client: Client) {
 
 class PartnershipChannelScanner {
   miscDbData!: MiscDbData;
-  lastScannedMessageId: string | undefined;
+  lastScanMessageId: string | undefined;
   lastScanTimestamp: number = 0;
-  notificationWatermark = MSK().date(-3);
+  newestMessageId: string | undefined;
+  notificationWatermark = MSK().date(MSK().date() - 3);
   fetchOptions: FetchMessagesOptions = { limit: 100, cache: false };
+  queueLastMessageId: string | undefined;
   currentMsgTimestamp: number | undefined;
 
   /** `{message => guildID}` */
@@ -56,7 +58,7 @@ class PartnershipChannelScanner {
   currentDayDate: Date | undefined;
 
   get readonlyMode() {
-    return !this.lastScannedMessageId && !this.lastScanTimestamp;
+    return !this.lastScanMessageId && !this.lastScanTimestamp;
   }
   get needAlert() {
     return (
@@ -72,17 +74,21 @@ class PartnershipChannelScanner {
 
   async start() {
     this.miscDbData = await DB_Misc.findOneAsync({ _id: "1" });
-    this.lastScannedMessageId =
+    this.lastScanMessageId =
       this.miscDbData.last_scanned_message[this.channel.id];
-    if (this.lastScannedMessageId) {
+    if (this.lastScanMessageId) {
       const message = await eds.sfMessage(
         this.channel.messages,
-        this.lastScannedMessageId,
+        this.lastScanMessageId,
       );
       this.lastScanTimestamp = message?.createdTimestamp ?? 0;
     }
+    this.newestMessageId = this.channel.lastMessageId
+      ?? await this.channel.messages.fetch({ limit: 1 })
+        .then(messages => messages.at(0)?.id)
+        .catch(() => undefined);
 
-    if (!this.lastScannedMessageId && !this.lastScanTimestamp)
+    if (!this.lastScanMessageId && !this.lastScanTimestamp)
       Log.Scan.silentMode();
     Log.Scan.start();
     let toContinue = true;
@@ -92,13 +98,13 @@ class PartnershipChannelScanner {
     }
     Log.Scan.end();
 
-    if (this.lastScannedMessageId)
-      markAsLatest(this.channel.id, this.lastScannedMessageId);
+    if (this.newestMessageId)
+      markAsLatest(this.channel.id, this.newestMessageId);
     runGeneralScan(this.client);
   }
 
   private async performScan(): Promise<boolean> {
-    if (!this.readonlyMode) this.fetchOptions.after = this.lastScannedMessageId;
+    if (!this.readonlyMode) this.fetchOptions.after = this.lastScanMessageId;
     const messages = await this.channel.messages
       .fetch(this.fetchOptions)
       .catch(() => {});
@@ -106,6 +112,7 @@ class PartnershipChannelScanner {
     messages.sort((A, B) => B.createdTimestamp - A.createdTimestamp); //Начинаем с новых
 
     //Коллекция начинается с самых новых сообщений
+    this.queueLastMessageId = messages.at(-1)!.id;
     for (const msg of messages.values()) {
       if (await this.scanMessage(msg)) return false;
     }
@@ -120,7 +127,6 @@ class PartnershipChannelScanner {
       await deletePartnership(msg);
       return;
     }
-    if (msg.id == this.lastScannedMessageId) return true;
     else if (typeof invite === "number") {
       await deletePartnership(msg);
       if (this.needAlert) DelegateAlerts.deletePartnership(msg, invite, true);
@@ -129,6 +135,9 @@ class PartnershipChannelScanner {
     }
     else if (invite.guild) {
       await this.checkInvite(invite, msg);
+    }
+    else {
+      console.error("scan.ts: GOT TO UNREACHABLE CODE");
     }
   }
 
@@ -156,14 +165,17 @@ class PartnershipChannelScanner {
       msg.createdAt.getDate() != this.currentDayDate.getDate() ||
       msg.createdAt.getMonth() != this.currentDayDate.getMonth()
     ) {
-      this.currentDayDate = msg.createdAt;
-      this.currentDayTexts.reverse();
-      await this.checkAllDayTexts();
-      this.currentDayTexts.clear();
+      await this.performAllDayCheck(msg);
     }
-    else {
-      this.currentDayTexts.set(msg, invite.guild.id);
-    }
+    this.currentDayTexts.set(msg, invite.guild.id);
+    if (msg.id == this.queueLastMessageId) await this.performAllDayCheck(msg);
+  }
+
+  private async performAllDayCheck(lastMsg: Message<true>) {
+    this.currentDayDate = lastMsg.createdAt;
+    this.currentDayTexts.reverse();
+    await this.checkAllDayTexts();
+    this.currentDayTexts.clear();
   }
 
   private async checkAllDayTexts() {
@@ -186,7 +198,7 @@ class PartnershipChannelScanner {
         cooldownChecked.add(guildId);
         Log.Scan.messageOk(msg.id, msg.author.id, this.readonlyMode);
         if (msg.createdTimestamp > this.lastScanTimestamp) {
-          this.lastScannedMessageId = msg.id;
+          this.lastScanMessageId = msg.id;
           this.lastScanTimestamp = msg.createdTimestamp;
         }
         if (!this.readonlyMode) {

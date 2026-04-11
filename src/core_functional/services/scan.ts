@@ -1,32 +1,12 @@
-import {
-  AsceticInvite,
-  deletePartnership,
-  getServerData,
-  incrementDelegateStats,
-  initServerData_byInvite,
-  markAsLatest,
-  updateServerData_byInvite,
-} from "#core_functional";
-import {
-  ConfigEnv,
-  DB_Misc,
-  MessageInvites,
-  MiscDbData,
-  MSK,
-  resources,
-} from "#corelib";
+import { deletePartnership, getServerData, incrementDelegateStats, initServerData_byInvite, markAsLatest, updateServerData_byInvite } from "#core_functional";
+import { ConfigEnv, DB_Misc, MessageInvites, MSK, resources } from "#corelib";
 import eds from "@eds-fw/framework";
-import {
-  Client,
-  Collection,
-  FetchMessagesOptions,
-  GuildTextBasedChannel,
-  Message,
-} from "discord.js";
+import { Client, FetchMessagesOptions, GuildTextBasedChannel, Message } from "discord.js";
 import { DelegateAlerts } from "./alerts.js";
 import { ConditionErrno, validateConditions } from "./check_conditions.js";
 import { runGeneralScan } from "./general_scan.js";
 import { Log } from "./log.js";
+
 
 const ReactionsQueue = new eds.ActionQueue(3_000);
 const CheckedGuilds = new Set<string>();
@@ -34,168 +14,88 @@ const CheckedGuilds = new Set<string>();
 export async function performPartnershipsScan(client: Client) {
   const guild = await eds.sfGuild(client.guilds, ConfigEnv.GUILD_ID);
   if (!guild) return;
-
+  
   for (const channelId of ConfigEnv.PARTNERSHIP_CHANNELS_ID) {
     const channel = await eds.sfChannel(guild?.channels, channelId);
     if (!channel?.isSendable()) continue;
-    await new PartnershipChannelScanner(client, channel).start();
+    await scanPartnershipChannel(client, channel);
     CheckedGuilds.clear();
   }
 }
 
-class PartnershipChannelScanner {
-  miscDbData!: MiscDbData;
-  lastScannedMessageId: string | undefined;
-  lastScanTimestamp: number = 0;
-  notificationWatermark = MSK().date(-3);
-  fetchOptions: FetchMessagesOptions = { limit: 100, cache: false };
-  currentMsgTimestamp: number | undefined;
+async function scanPartnershipChannel(client: Client, channel: GuildTextBasedChannel) {
+  const _miscDbData = await DB_Misc.findOneAsync({ _id: "1" });
+  let lastScannedMessageId: string | undefined = _miscDbData.last_scanned_message[channel.id];
+  let lastScanTimestamp = lastScannedMessageId ?
+    (await eds.sfMessage(channel.messages, lastScannedMessageId))?.createdTimestamp ?? 0 : 0;
+  const readonlyMode = !lastScannedMessageId && !lastScanTimestamp;
+  const notificationWatermark = MSK().date(-3); //за последние 3 дня
 
-  /** `{message => guildID}` */
-  currentDayTexts = new Collection<Message<true>, string>();
-  currentDayDate: Date | undefined;
-
-  get readonlyMode() {
-    return !this.lastScannedMessageId && !this.lastScanTimestamp;
-  }
-  get needAlert() {
-    return (
-      !this.readonlyMode &&
-      MSK(this.currentMsgTimestamp).isAfter(this.notificationWatermark)
-    );
-  }
-
-  constructor(
-    public client: Client,
-    public channel: GuildTextBasedChannel,
-  ) {}
-
-  async start() {
-    this.miscDbData = await DB_Misc.findOneAsync({ _id: "1" });
-    this.lastScannedMessageId =
-      this.miscDbData.last_scanned_message[this.channel.id];
-    if (this.lastScannedMessageId) {
-      const message = await eds.sfMessage(
-        this.channel.messages,
-        this.lastScannedMessageId,
-      );
-      this.lastScanTimestamp = message?.createdTimestamp ?? 0;
-    }
-
-    if (!this.lastScannedMessageId && !this.lastScanTimestamp)
-      Log.Scan.silentMode();
-    Log.Scan.start();
-    let toContinue = true;
-    while (toContinue) {
-      toContinue = await this.performScan();
-      await eds.wait(3_000);
-    }
-    Log.Scan.end();
-
-    if (this.lastScannedMessageId)
-      markAsLatest(this.channel.id, this.lastScannedMessageId);
-    runGeneralScan(this.client);
-  }
-
-  private async performScan(): Promise<boolean> {
-    if (!this.readonlyMode) this.fetchOptions.after = this.lastScannedMessageId;
-    const messages = await this.channel.messages
-      .fetch(this.fetchOptions)
-      .catch(() => {});
+  const performScan = async function() {
+    const fetchOptions: FetchMessagesOptions = { limit: 100, cache: false };
+    if (!readonlyMode) fetchOptions.after = lastScannedMessageId;
+    const messages = await channel.messages.fetch(fetchOptions).catch(() => {});
     if (!messages?.size) return false;
     messages.sort((A, B) => B.createdTimestamp - A.createdTimestamp); //Начинаем с новых
 
     //Коллекция начинается с самых новых сообщений
     for (const msg of messages.values()) {
-      if (await this.scanMessage(msg)) return false;
-    }
-    return !this.readonlyMode; //to continue?
-  }
-
-  /** @returns {true} если сканирование завершено */
-  private async scanMessage(msg: Message<true>): Promise<true | undefined> {
-    this.currentMsgTimestamp = msg.createdTimestamp;
-    const invite = await validateConditions(msg, { checkCooldown: false });
-    if (invite === ConditionErrno.just_return) {
-      await deletePartnership(msg);
-      return;
-    }
-    if (msg.id == this.lastScannedMessageId) return true;
-    else if (typeof invite === "number") {
-      await deletePartnership(msg);
-      if (this.needAlert) DelegateAlerts.deletePartnership(msg, invite, true);
-      Log.Scan.messageWrong(msg.id, msg.author.id, invite, this.needAlert);
-      return;
-    }
-    else if (invite.guild) {
-      await this.checkInvite(invite, msg);
-    }
-  }
-
-  private async checkInvite(invite: AsceticInvite, msg: Message<true>) {
-    if (CheckedGuilds.has(invite.guild.id) && ConfigEnv.DELETE_OLD_TEXTS) {
-      await deletePartnership(msg);
-      Log.Scan.messageDuplicate(msg.id, msg.author.id);
-      return;
-    }
-    MessageInvites.set(msg.id, invite.guild.id);
-    CheckedGuilds.add(invite.guild.id);
-    const serverData =
-      (await getServerData(invite.guild.id)) ??
-      (await initServerData_byInvite(invite));
-
-    updateServerData_byInvite(
-      serverData!,
-      invite,
-      msg.author.id,
-      msg.createdTimestamp,
-    );
-
-    this.currentDayDate ??= msg.createdAt;
-    if (
-      msg.createdAt.getDate() != this.currentDayDate.getDate() ||
-      msg.createdAt.getMonth() != this.currentDayDate.getMonth()
-    ) {
-      this.currentDayDate = msg.createdAt;
-      this.currentDayTexts.reverse();
-      await this.checkAllDayTexts();
-      this.currentDayTexts.clear();
-    }
-    else {
-      this.currentDayTexts.set(msg, invite.guild.id);
-    }
-  }
-
-  private async checkAllDayTexts() {
-    const cooldownChecked = new Set<string>();
-    //Теперь мы можем проверить, нет ли нарушений дневного КД.
-    //Коллекция начинается со старых сообщений (начало дня)
-    for (const [msg, guildId] of this.currentDayTexts.entries()) {
-      if (cooldownChecked.has(guildId)) {
+      const invite = await validateConditions(msg, { checkCooldown: false });
+      if (invite === ConditionErrno.just_return) {
         await deletePartnership(msg);
-        if (this.needAlert)
-          DelegateAlerts.deletePartnership(msg, ConditionErrno.cooldown, true);
-        Log.Scan.messageWrong(
-          msg.id,
-          msg.author.id,
-          ConditionErrno.cooldown,
-          this.needAlert,
-        );
+        continue;
       }
-      else {
-        cooldownChecked.add(guildId);
-        Log.Scan.messageOk(msg.id, msg.author.id, this.readonlyMode);
-        if (msg.createdTimestamp > this.lastScanTimestamp) {
-          this.lastScannedMessageId = msg.id;
-          this.lastScanTimestamp = msg.createdTimestamp;
+      if (msg.id == lastScannedMessageId) return false;
+
+      else if (typeof invite === "number") {
+        const needAlert = !readonlyMode && MSK(msg.createdTimestamp).isAfter(notificationWatermark);
+        await deletePartnership(msg);
+        if (needAlert) DelegateAlerts.deletePartnership(msg, invite, true);
+        Log.Scan.messageWrong(msg.id, msg.author.id, invite, needAlert);
+        continue;
+      }
+      else if (invite.guild) {
+        if (CheckedGuilds.has(invite.guild.id) && ConfigEnv.DELETE_OLD_TEXTS) {
+          await deletePartnership(msg);
+          Log.Scan.messageDuplicate(msg.id, msg.author.id);
+          continue;
         }
-        if (!this.readonlyMode) {
+        MessageInvites.set(msg.id, invite.guild.id);
+        CheckedGuilds.add(invite.guild.id);
+        const serverData = await getServerData(invite.guild.id)
+          ?? await initServerData_byInvite(invite);
+
+        updateServerData_byInvite(
+          serverData!,
+          invite,
+          msg.author.id,
+          msg.createdTimestamp
+        );
+        if (msg.createdTimestamp > lastScanTimestamp) {
+          lastScannedMessageId = msg.id;
+          lastScanTimestamp = msg.createdTimestamp;
+        }
+        if (!readonlyMode) {
           incrementDelegateStats(msg.author.id, msg.createdTimestamp);
           deferReaction(msg);
         }
+        Log.Scan.messageOk(msg.id, msg.author.id, readonlyMode);
       }
     }
+    return !readonlyMode; //to continue?
   }
+
+  if (!lastScannedMessageId && !lastScanTimestamp) Log.Scan.silentMode();
+  Log.Scan.start();
+  let toContinue = true;
+  while (toContinue) {
+    toContinue = await performScan();
+    await eds.wait(3_000);
+  }
+  Log.Scan.end();
+
+  if (lastScannedMessageId) markAsLatest(channel.id, lastScannedMessageId);
+  runGeneralScan(client);
 }
 
 function deferReaction(message: Message) {

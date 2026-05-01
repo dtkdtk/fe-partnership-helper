@@ -1,6 +1,6 @@
 import { Client } from "discord.js";
 
-export class FEInspector {
+export class FEWatchdog {
   constructor(ConfigEnv: object);
   client: Client;
   start(): void;

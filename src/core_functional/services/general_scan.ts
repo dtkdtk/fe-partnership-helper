@@ -164,6 +164,7 @@ async function scanChannel(channel: GuildTextBasedChannel, lastMessage?: string)
       }
       else if (ConfigEnv.GENERAL_SCAN_UNFETCHED_STRATEGY == "IGNORE") {
         Log.GeneralScan.ignoreUnfetched(msg.id, msg.author.id, inviteCode, isCached);
+        lastMessage = msg.id;
         continue;
       }
       //Если COUNT, то мы просто продолжаем без изменений логики

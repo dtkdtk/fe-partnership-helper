@@ -77,6 +77,9 @@ function _getValidEnv() {
   env.PARTNERSHIP_CHANNELS_ID = env.PARTNERSHIP_CHANNELS_ID
     ? env.PARTNERSHIP_CHANNELS_ID.replaceAll(" ", "").split(",")
     : [];
+  env.WATCHDOG_BOT_ENABLED = "WATCHDOG_BOT_ENABLED" in env
+    ? _strictCast.boolean(env.WATCHDOG_BOT_ENABLED)
+    : true;
 
   assert(
     env.ENABLE_DEBUG !== null,

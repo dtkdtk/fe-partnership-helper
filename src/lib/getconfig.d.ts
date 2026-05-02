@@ -19,6 +19,7 @@ type ConfigEnvProperties = {
   TIMEZONE_UTC_OFFSET: number;
   LOG_LEVEL: string;
   LOGS_LIFE_DURATION: number;
+  WATCHDOG_BOT_ENABLED: boolean;
 
   /** `Record<roleId, permissionBitflags>` */
   ROLE_PERMISSIONS: Record<string, DgPermissions>;

@@ -1,20 +1,22 @@
 import { Worker } from "worker_threads";
-import { FEInspector } from "./inspector.js";
+import { FEWatchdog } from "./watchdog.js";
 
 const MAX_FAILS = 6;
 
 class LocalFEWorker {
   /** @type {Worker} */
   worker;
-  /** @type {FEInspector} */
-  inspector;
+  /** @type {FEWatchdog} */
+  watchdog;
   fails = 0;
   ConfigEnv;
 
   setup(ConfigEnv) {
     this.ConfigEnv = ConfigEnv;
-    this.inspector = new FEInspector(ConfigEnv);
-    this.inspector.start();
+    if (ConfigEnv.WATCHDOG_BOT_ENABLED) {
+      this.watchdog = new FEWatchdog(ConfigEnv);
+      this.watchdog.start();
+    }
     this.createWorker();
   }
   createWorker() {
@@ -22,7 +24,7 @@ class LocalFEWorker {
     if (!this.ConfigEnv.ENABLE_DEBUG)
       this.worker.on("error", (error) => {
         this.fails++;
-        this.inspector.report(error);
+        if (this.watchdog) this.watchdog.report(error);
         if (this.fails == MAX_FAILS) return;
         setTimeout(() => this.createWorker(), 10_000);
       });

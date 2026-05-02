@@ -1,6 +1,6 @@
 const djs = await import("discord.js");
 
-export class FEInspector {
+export class FEWatchdog {
   ConfigEnv;
   client;
   constructor(ConfigEnv) {

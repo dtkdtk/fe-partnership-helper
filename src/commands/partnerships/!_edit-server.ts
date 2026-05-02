@@ -1,7 +1,35 @@
-import { addToBlacklist, AsceticInvite, extractInviteCodes, fetchInvite, getBlacklistData, getPartnerData, getServerData, Log, partnerMenuSource, removeFromBlacklist, ServerData, updateServerData_byInvite } from "#core_functional";
-import { BotCache, checkPermission, DgPermissions, emoji, lastDatedVal, resources, tReply } from "#corelib";
+import {
+  addToBlacklist,
+  AsceticInvite,
+  extractInviteCodes,
+  fetchInvite,
+  getBlacklistData,
+  getPartnerData,
+  getServerData,
+  Log,
+  partnerMenuSource,
+  removeFromBlacklist,
+  ServerData,
+  updateServerData_byInvite
+} from "#core_functional";
+import {
+  BotCache,
+  checkPermission, DgPermissions,
+  emoji,
+  lastDatedVal,
+  resources,
+  tReply
+} from "#corelib";
 import eds from "@eds-fw/framework";
-import { BaseMessageOptions, ButtonStyle, ComponentType, MessageActionRowComponentData, MessageFlags, SelectMenuDefaultValueType, TextInputStyle } from "discord.js";
+import {
+  BaseMessageOptions,
+  ButtonStyle,
+  ComponentType,
+  MessageActionRowComponentData,
+  MessageFlags,
+  SelectMenuDefaultValueType,
+  TextInputStyle
+} from "discord.js";
 import { CoreLog } from "../../logging.js";
 
 
@@ -9,7 +37,8 @@ export default {
   async run(ctx) {
     const rawTarget = ctx.options.getString("target")!.trim();
     const isGuildId = /^\d+$/.test(rawTarget);
-    let targetGuildId: string, maybeInvite: AsceticInvite | undefined;
+    let targetGuildId: string;
+    let maybeInvite: AsceticInvite | undefined;
     let partnershipDbData: ServerData | null;
     if (!isGuildId) {
       const invite = await fetchInvite(extractInviteCodes(rawTarget), ctx.client);
@@ -30,7 +59,7 @@ export default {
 
     let warnings = "";
 
-    if (!partnershipDbData && !maybeInvite)
+    if (!targetGuildId)
       return tReply.error(ctx, "Ошибка 404", "Сервер не распознан / не найден.");
 
     if (!partnershipDbData)
@@ -43,9 +72,9 @@ export default {
     const alwaysServerData: Partial<ServerData> = {
       _id: targetGuildId,
       last_members_count: partnershipDbData?.last_members_count
-        ?? maybeInvite?.memberCount!,
+        ?? maybeInvite?.memberCount,
       last_name: partnershipDbData?.last_name
-        ?? maybeInvite?.guild.name!,
+        ?? maybeInvite?.guild.name,
     };
 
     const partnerIDs = partnershipDbData?.partners
@@ -68,7 +97,10 @@ export default {
     const mbBlacklistData = await getBlacklistData(targetGuildId);
     const mbBlacklistAdmin = await eds.sfUser(ctx, mbBlacklistData?.admin_id);
     const displayBlacklist = mbBlacklistData
-      ? `\n# В ЧЁРНОМ СПИСКЕ\n**Причина:** ${mbBlacklistData.reason}\n**Админ:** \`${mbBlacklistAdmin?.username ?? mbBlacklistData.admin_id}\`\n**Дата:** <t:${Math.floor(mbBlacklistData.timestamp / 1000)}:d>`
+      ? `\n# В ЧЁРНОМ СПИСКЕ`
+        + `\n**Причина:** ${mbBlacklistData.reason}`
+        + `\n**Админ:** \`${mbBlacklistAdmin?.username ?? mbBlacklistData.admin_id}\``
+        + `\n**Дата:** <t:${Math.floor(mbBlacklistData.timestamp / 1000)}:d>`
       : "";
     
     const displayPartners = partners.length
@@ -84,6 +116,7 @@ export default {
         type: ComponentType.UserSelect,
         customId: "edit-server.set-partner",
         placeholder: "Назначить партнёра",
+        disabled: !partnershipDbData,
         ...(previousPartner ? {
           defaultValues: prevPartnerID
           ? [{
@@ -131,9 +164,11 @@ export default {
               name: "Информация о сервере",
               icon_url: resources.images.info,
             },
-            title: `${alwaysServerData.last_name}\n[${targetGuildId}]`,
+            title: `${alwaysServerData.last_name ?? "<неизвестный>"}\n[${targetGuildId}]`,
             description:
-              `Участников: \`${alwaysServerData.last_members_count}\`\nПартнёры: ${displayPartners}\nДелегаты: ${displayDelegates}\n`
+              `Участников: \`${alwaysServerData.last_members_count ?? "<неизвестно>"}\``
+              + `\nПартнёры: ${displayPartners}`
+              + `\nДелегаты: ${displayDelegates}\n`
               + displayBlacklist
               + warnings,
           },

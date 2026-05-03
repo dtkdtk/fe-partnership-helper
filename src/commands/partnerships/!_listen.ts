@@ -10,6 +10,7 @@ import {
   Log,
   markAsLatest,
   partnerMenuSource,
+  StaffCache,
   updateServerData_byInvite,
   validateConditions
 } from "#core_functional";
@@ -34,7 +35,6 @@ export default {
     }
 
     const warnings = [];
-    const minimalMembers = ConfigEnv.REQUIREMENT_MINIMAL_MEMBERS;
     const invite = await validateConditions(ctx, { forceCacheRefresh: true });
     if (invite === 0) return;
     if (typeof invite == "number")
@@ -59,6 +59,7 @@ export default {
     const prevPartnerID = lastDatedVal(serverData.partners);
     updateServerData_byInvite(serverData, invite, ctx.user.id, ctx.createdTimestamp);
     markAsLatest(ctx.channelId, ctx.id);
+    StaffCache.set(ctx.member!);
     const delegateStats = (
       await getDelegateStats(ctx.user.id) ?? await initDelegateStats(ctx.user.id),
       await incrementDelegateStats(ctx.user.id, +MSK())

@@ -1,5 +1,6 @@
 import {
   getDelegateStats,
+  getStaffAscData,
 } from "#core_functional";
 import {
   DB_DelegationStats,
@@ -99,7 +100,19 @@ const components = [
       },
     ],
   },
-] as [ActionRowData<ButtonComponentData>];
+  {
+    type: ComponentType.ActionRow,
+    components: [
+      {
+        type: ComponentType.Button,
+        style: ButtonStyle.Primary,
+        customId: "delegation-stats.mode.leaderboard",
+        label: "Топ за всё время",
+        emoji: emoji(resources.button_icons.trophy)
+      }
+    ]
+  }
+] as [ActionRowData<ButtonComponentData>, ActionRowData<ButtonComponentData>];
 
 
 
@@ -205,11 +218,10 @@ export async function statsMenuSource(
       .filter(([, total]) => total > 0);
 
     for (const [delegateId, total] of sortedDelegates) {
-      const member = await eds.sfMember(ctx, delegateId);
-      if (member) {
-        const displayName = member.displayName || member.user.username;
-        tableData += `- ${displayName} - **${total}**\n`;
-      }
+      const member = await getStaffAscData(ctx, delegateId);
+      const displayName = member ?
+        (member.displayName || member.username) : "`[" + delegateId + "]`";
+      tableData += `- ${displayName} - **${total}**\n`;
     }
 
     const chartDates = Array.from(dailyTotals.keys()).sort(_sortDates);

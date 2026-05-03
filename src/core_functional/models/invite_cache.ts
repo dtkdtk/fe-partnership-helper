@@ -17,4 +17,4 @@ export namespace InvitesCache {
   export function setUnfetched(inviteCode: string) {
     return DB_InvitesCache.insertAsync({ _id: inviteCode }).catch(() => null);
   }
-} 
+}

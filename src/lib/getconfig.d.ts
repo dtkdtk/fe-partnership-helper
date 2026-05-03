@@ -31,7 +31,7 @@ interface Resources {
   colors: Record<"default" | "gray" | "delegation" | "error", number>;
   images: Record<"briefcase" | "info" | "yes" | "no" | "time" | "list" | "statistics", string>;
   emoji: Record<"briefcase" | "calendar" | "warning" | "yes" | "no" | "system" | "link" | "member", string>;
-  button_icons: Record<"calendar" | "yes" | "no" | "warning" | "link", string>;
+  button_icons: Record<"calendar" | "yes" | "no" | "warning" | "link" | "trophy", string>;
   default_footer: { delete1h: string; deleteP1m: string; text: string; image: string; };
   text_fragments: Record<"partnerAlert_thanks" | "partnerAlert_tomorrowRemind", string>;
 }

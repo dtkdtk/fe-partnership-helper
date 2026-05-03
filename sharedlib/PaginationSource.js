@@ -17,7 +17,7 @@ export class PaginationSource {
                         type: ComponentType.Button,
                         customId: "pagination.previous",
                         style: PaginationSource.PREVIOUS_BTN_STYLE,
-                        emoji: emoji(PaginationSource.PREVIOUS_BTN_EMOJI),
+                        emoji: PaginationSource.PREVIOUS_BTN_EMOJI,
                         disabled: this.index == 0,
                     },
                     {
@@ -30,7 +30,7 @@ export class PaginationSource {
                         type: ComponentType.Button,
                         customId: "pagination.next",
                         style: PaginationSource.NEXT_BTN_STYLE,
-                        emoji: emoji(PaginationSource.NEXT_BTN_EMOJI),
+                        emoji: PaginationSource.NEXT_BTN_EMOJI,
                         disabled: this.index + 1 == this.pages.length,
                     },
                 ],
@@ -48,9 +48,9 @@ export class PaginationSource {
     }
 }
 (function (PaginationSource) {
-    PaginationSource.NEXT_BTN_EMOJI = "➡";
+    PaginationSource.NEXT_BTN_EMOJI = "➡️";
     PaginationSource.NEXT_BTN_STYLE = ButtonStyle.Secondary;
-    PaginationSource.PREVIOUS_BTN_EMOJI = "⬅";
+    PaginationSource.PREVIOUS_BTN_EMOJI = "⬅️";
     PaginationSource.PREVIOUS_BTN_STYLE = ButtonStyle.Secondary;
     PaginationSource.PAGE_INDEX_BTN_STYLE = ButtonStyle.Primary;
     PaginationSource.replies = {

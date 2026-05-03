@@ -62,6 +62,8 @@ export namespace Log {
     export function start() {
       ScanStart = MSK();
       logger.info("Scan: START");
+      console.info("Идёт проверка сообщений за период оффлайна."
+        + "\n  (!) Пожалуйста, не выключайте бота.");
     }
     export function newCycle() {
       logger.info("Scan: new cycle (continuing)");
@@ -72,6 +74,8 @@ export namespace Log {
       const displayDiff = (diff.hours() ? diff.hours() + " hr " : "")
         + (diff.minutes() ? diff.minutes() + " min " : "") + diff.seconds() + " sec.";
       logger.info("Scan: END. Took %s", displayDiff);
+      console.info("Проверка сообщений окончена. Можно выключать бота."
+        + "\n  Проверка заняла %s", displayDiff);
     }
     export function silentMode() {
       logger.info("Scan: silent mode (no data about last scanned message)");

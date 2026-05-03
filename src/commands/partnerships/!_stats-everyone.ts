@@ -28,5 +28,3 @@ export default {
     desc: "Статистика деятельности делегации",
   },
 } satisfies eds.CommandFile<"slash">;
-
-

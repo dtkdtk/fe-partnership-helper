@@ -12,7 +12,8 @@ export namespace StaffCache {
   export async function get(id: string): Promise<AsceticMember | null> {
     const data = await DB_StaffCache.findOneAsync({ _id: id })
       .catch(() => null);
-    return data;
+    if (data === null || !("username" in data)) return null
+    else return data;
   }
   export async function update(member: GuildMember | AsceticMaybeMember) {
     const M = resolve(member);

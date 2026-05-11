@@ -1,10 +1,9 @@
 import {
   CommonDatabaseDir,
-  DB_DelegationStats, DB_InvitesCache, DB_Misc, DB_PartnersData, DB_ServersBlacklist,
-  DB_ServersData, DelegationStats_DBFile, InvitesCache_DBFile, Misc_DBFile,
+  DB_DelegationStats, DB_InvitesCache, DB_Misc, DB_PartnersData, DB_ServersBlacklist, DB_StaffCache,
+  DB_ServersData, DelegationStats_DBFile, InvitesCache_DBFile, Misc_DBFile, StaffCache_DBFile,
   PartnersData_DBFile, ServersData_DBFile
 } from "#corelib";
-import JSZip from "jszip";
 
 export type AutoDumpAction = (dump: Blob) => any;
 
@@ -15,6 +14,7 @@ const Databases = [
   DB_ServersBlacklist,
   DB_Misc,
   DB_InvitesCache,
+  DB_StaffCache,
 ];
 const Files = [
   DelegationStats_DBFile,
@@ -23,6 +23,7 @@ const Files = [
   ServersData_DBFile,
   Misc_DBFile,
   InvitesCache_DBFile,
+  StaffCache_DBFile,
 ];
 
 let ZipFactory: typeof import("jszip");

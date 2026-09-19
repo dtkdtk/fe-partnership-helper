@@ -57,6 +57,8 @@ export async function updateServerData(
     last_name: guildName,
     last_members_count: memberCount,
   };
+  data.delegates ??= {};
+  data.partners ??= {};
   if (timestamp !== undefined) data.timestamp = timestamp;
   if (delegateId) updateDatedVal(data.delegates, delegateId);
   await DB_ServersData.updateAsync({ _id: data._id }, data);

@@ -2,7 +2,8 @@ import {
   CommonDatabaseDir,
   DB_DelegationStats, DB_InvitesCache, DB_Misc, DB_PartnersData, DB_ServersBlacklist, DB_StaffCache,
   DB_ServersData, DelegationStats_DBFile, InvitesCache_DBFile, Misc_DBFile, StaffCache_DBFile,
-  PartnersData_DBFile, ServersData_DBFile
+  PartnersData_DBFile, ServersData_DBFile,
+  ServersBlacklist_DBFile
 } from "#corelib";
 
 export type AutoDumpAction = (dump: Blob) => any;
@@ -20,7 +21,7 @@ const Files = [
   DelegationStats_DBFile,
   ServersData_DBFile,
   PartnersData_DBFile,
-  ServersData_DBFile,
+  ServersBlacklist_DBFile,
   Misc_DBFile,
   InvitesCache_DBFile,
   StaffCache_DBFile,

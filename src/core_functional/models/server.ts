@@ -2,17 +2,6 @@ import { AsceticInvite, ServerData } from "#core_functional";
 import { DB_Misc, DB_ServersData, updateDatedVal } from "#corelib";
 
 
-function emptyServerData() {
-  return {
-    timestamp: Date.now(),
-    message_id: null,
-    last_name: "",
-    last_members_count: 0,
-    delegates: {},
-    partners: {},
-  };
-}
-
 export async function initServerData(
   guildId: string,
   guildName: string,
@@ -20,10 +9,13 @@ export async function initServerData(
   overrides?: Partial<ServerData>
 ): Promise<ServerData | null> {
   const data: ServerData = {
-    ...emptyServerData(),
     _id: guildId,
+    timestamp: Date.now(),
+    message_id: null,
     last_name: guildName,
     last_members_count: memberCount,
+    delegates: {},
+    partners: {},
     ...overrides,
   };
   const success = Boolean(await DB_ServersData.insertAsync(data).catch(() => false));
@@ -52,13 +44,10 @@ export async function updateServerData(
   timestamp?: number
 ): Promise<ServerData> {
   const data: ServerData = {
-    ...emptyServerData(),
     ...oldData,
     last_name: guildName,
     last_members_count: memberCount,
   };
-  data.delegates ??= {};
-  data.partners ??= {};
   if (timestamp !== undefined) data.timestamp = timestamp;
   if (delegateId) updateDatedVal(data.delegates, delegateId);
   await DB_ServersData.updateAsync({ _id: data._id }, data);

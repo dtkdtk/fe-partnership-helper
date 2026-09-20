@@ -152,7 +152,7 @@ class PartnershipChannelScanner {
     else if (typeof invite === "number") {
       if (!this.readonlyMode) {
         await deletePartnership(msg);
-        Log.Scan.messageWrong(msg.id, msg.author.id, invite, this.needAlert);
+        Log.Scan.messageWrong(msg.id, msg.author.id, invite, this.needAlert, msg.content);
       }
       if (this.needAlert) DelegateAlerts.deletePartnership(msg, invite, true);
       return;

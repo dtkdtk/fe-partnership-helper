@@ -1,4 +1,4 @@
-import { logger, MSK } from "#corelib";
+import { ConfigEnv, logger, MSK } from "#corelib";
 import moment from "moment";
 import { ConditionErrno } from "./check_conditions.js";
 import { ResultState } from "./general_scan.js";
@@ -9,29 +9,36 @@ export namespace Log {
     export function messageWrong(messageId: string, delegateId: string, errno: number) {
       logger.info({ messageId, delegateId, errno }, "Listen: wrong partnership, must delete");
     }
+    export function messageDeleted(messageId: string, delegateId: string, errno: number, guildText: string) {
+      if (!ConfigEnv.LOG_WITH_TEXTS) guildText = "";
+      logger.info({ messageId, delegateId, errno, guildText }, "Listen: wrong partnership not deleted manually, delete");
+    }
     export function messageOld(deletedMessageId: string, actualMessageId: string) {
       logger.info({ deletedMessageId, actualMessageId },
-        "Listen: wrong partnership, delete");
+        "Listen: old partnership, delete");
     }
-    export function messageOk(messageId: string, delegateId: string) {
-      logger.info({ messageId, delegateId }, "Listen: successful partnership, respect");
+    export function messageOk(messageId: string, delegateId: string, guildId: string) {
+      logger.info({ messageId, delegateId, guildId }, "Listen: successful partnership, respect");
     }
-    export function externalDelete(messageId: string, delegateId: string) {
-      logger.info({ messageId, delegateId }, "Listen: partnership deleted by author / admin");
+    export function externalDelete(messageId: string, delegateId: string, guildText: string | null) {
+      if (!ConfigEnv.LOG_WITH_TEXTS) guildText = "";
+      logger.info({ messageId, delegateId, guildText }, "Listen: partnership deleted by author / admin");
     }
   }
 
   export namespace DMAlert {
     export function deletePartnership(
-      messageId: string, delegateId: string, success: boolean
+      messageId: string, delegateId: string, success: boolean, guildText: string
     ) {
-      logger.info({ messageId, delegateId, success },
+      if (!ConfigEnv.LOG_WITH_TEXTS) guildText = "";
+      logger.info({ messageId, delegateId, success, guildText },
         "DMAlert: wrong partnership not deleted, alert about auto delete");
     }
     export function deletePartnershipFallback(
-      messageId: string, delegateId: string, success: boolean
+      messageId: string, delegateId: string, success: boolean, guildText: string
     ) {
-      logger.info({ messageId, delegateId, success },
+      if (!ConfigEnv.LOG_WITH_TEXTS) guildText = "";
+      logger.info({ messageId, delegateId, success, guildText },
         "DMAlert: failed to alert (DM closed), send to staff channel");
     }
     export function partner(
@@ -89,12 +96,16 @@ export namespace Log {
       );
     }
     export function messageWrong(
-      messageId: string, delegateId: string, errno: ConditionErrno, alert: boolean
+      messageId: string, delegateId: string, errno: ConditionErrno, alert: boolean, guildText: string
     ) {
-      logger.info({ messageId, delegateId, errno, alert }, "Scan: wrong partnership, delete");
+      if (!ConfigEnv.LOG_WITH_TEXTS) guildText = "";
+      logger.info({ messageId, delegateId, errno, alert, guildText }, "Scan: wrong partnership, delete");
     }
-    export function messageDuplicate(messageId: string, delegateId: string) {
-      logger.info({ messageId, delegateId }, "Scan: duplicate partnership, delete");
+    export function messageDuplicate(
+      messageId: string, delegateId: string, guildText: string
+    ) {
+      if (!ConfigEnv.LOG_WITH_TEXTS) guildText = "";
+      logger.info({ messageId, delegateId, guildText }, "Scan: duplicate partnership, delete");
     }
   }
 

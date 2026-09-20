@@ -68,6 +68,9 @@ function _getValidEnv() {
   env.GENERAL_SCAN_DAILY_LIMIT = "GENERAL_SCAN_DAILY_LIMIT" in env
     ? _strictCast.integer(env.GENERAL_SCAN_DAILY_LIMIT)
     : 300;
+  env.LOG_WITH_TEXTS = "LOG_WITH_TEXTS" in env
+    ? _strictCast.boolean(env.LOG_WITH_TEXTS)
+    : true;
   env.LOGS_LIFE_DURATION = "LOGS_LIFE_DURATION" in env
     ? _strictCast.integer(env.LOGS_LIFE_DURATION)
     : 30;

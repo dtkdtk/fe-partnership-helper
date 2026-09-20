@@ -101,7 +101,7 @@ export namespace DelegateAlerts {
       ],
     };
     let success = !!(await message.author.send(msg).catch(() => {}));
-    Log.DMAlert.deletePartnership(message.id, message.author.id, success);
+    Log.DMAlert.deletePartnership(message.id, message.author.id, success, message.content);
     if (!success) {
       const delegateRoom = await eds.sfChannel(
         message.guild.channels,
@@ -111,7 +111,7 @@ export namespace DelegateAlerts {
       success = !!(await delegateRoom
         .send(msg)
         .catch(() => CoreLog.missingPermission("SEND_MESSAGES", { channelId: delegateRoom.id })));
-      Log.DMAlert.deletePartnershipFallback(message.id, message.author.id, success);
+      Log.DMAlert.deletePartnershipFallback(message.id, message.author.id, success, message.content);
     }
   }
 }

@@ -121,7 +121,7 @@ ID: \`${invite.guild.id}\`
         ],
       })
       .catch(() => CoreLog.missingPermission("SEND_MESSAGES", { channelId: ctx.channelId }));
-    Log.Listen.messageOk(ctx.id, ctx.author.id);
+    Log.Listen.messageOk(ctx.id, ctx.author.id, ctx.content);
     ctx.react(resources.button_icons.yes).catch(() => {});
     if (!reply) return;
 
@@ -202,7 +202,10 @@ async function _sendError(ctx: eds.CommandContext<"text">, errno: ConditionErrno
   await reply?.delete().catch(() => {});
   const deleteResult = await ctx.delete().catch(() => null);
 
-  if (deleteResult != null) DelegateAlerts.deletePartnership(ctx, errno);
+  if (deleteResult != null) {
+    DelegateAlerts.deletePartnership(ctx, errno);
+    Log.Listen.messageDeleted(ctx.id, ctx.author.id, errno, ctx.content);
+  }
 }
 
 async function deletePreviousText(ctx: CommandContext<"text">, messageId: string) {

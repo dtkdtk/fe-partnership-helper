@@ -18,6 +18,7 @@ type ConfigEnvProperties = {
   PARTNER_ALERTS_BATCH_DURATION: number;
   TIMEZONE_UTC_OFFSET: number;
   LOG_LEVEL: string;
+  LOG_WITH_TEXTS: boolean;
   LOGS_LIFE_DURATION: number;
   WATCHDOG_BOT_ENABLED: boolean;
 

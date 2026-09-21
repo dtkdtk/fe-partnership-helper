@@ -7,6 +7,7 @@ export * from "./models/staff_cache.js"
 
 export * from "./services/alerts.js"
 export * from "./services/check_conditions.js"
+export * from "./services/extract_guild.js"
 export * from "./services/general_scan.js"
 export * from "./services/handle_delete.js"
 export * from "./services/log.js"

@@ -100,11 +100,12 @@ class PartnershipChannelScanner {
         .catch(() => {})
       if (!messages?.size) return;
       messages.reverse();
+      this.msgQueue = this.msgQueue.concat(messages);
     }
 
     //Коллекция начинается с самых старых сообщений
     for (const msg of this.msgQueue.values()) {
-      if (await this.scanMessage(msg)) break;
+      await this.scanMessage(msg);
     }
   }
 
@@ -117,13 +118,8 @@ class PartnershipChannelScanner {
         .fetch(this.fetchOptions)
         .catch(() => {});
       if (!messages?.size) break;
-      this.fetchOptions.after = messages.firstKey();
-      this.msgQueue = this.msgQueue.merge(
-        messages,
-        a => ({ keep: true, value: a }),
-        b => ({ keep: true, value: b }),
-        ab => ({ keep: true, value: ab })
-      );
+      this.fetchOptions.after = messages.lastKey();
+      this.msgQueue = this.msgQueue.concat(messages);
       await eds.wait(5_000);
     }
     this.msgQueue.reverse(); //Порядок: с новых -> со старых
@@ -141,8 +137,7 @@ class PartnershipChannelScanner {
       markAsLatest(this.channel.id, latestMessageId);
   }
 
-  /** @returns {true} если сканирование завершено */
-  private async scanMessage(msg: Message<true>): Promise<true | undefined> {
+  private async scanMessage(msg: Message<true>): Promise<void> {
     this.currentMsgTimestamp = msg.createdTimestamp;
     const invite = await validateConditions(msg);
     if (invite === ConditionErrno.just_return) {

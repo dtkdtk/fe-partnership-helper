@@ -1,7 +1,8 @@
-import { AsceticInvite, getBlacklistData, getServerData, InvitesCache, Log } from "#core_functional";
-import { ConfigEnv, getDate, MSK, rateLimitSafe } from "#corelib";
-import { Client, Message } from "discord.js";
+import { AsceticInvite, getBlacklistData, getServerData, Log } from "#core_functional";
+import { ConfigEnv, getDate, MSK } from "#corelib";
+import { Message } from "discord.js";
 import { botConfig } from "../../bot_config.js";
+import { extractInviteCodes, fetchInvite } from "./extract_guild.js";
 
 
 export enum ConditionErrno {
@@ -85,49 +86,4 @@ export async function validateConditions(
 
   Log.ConditionsCheck.success(message.id, fetchedInvite.guild.id);
   return fetchedInvite;
-}
-
-/** Возвращает коды приглашений */
-export function extractInviteCodes(wholeText: string): string[] {
-  const inviteParts = wholeText.matchAll(/(https:\/\/|)(discord.gg|discord.com\/invite)\/([a-zA-Z0-9-_]+)/g);
-  const inviteCodes = Array.from(inviteParts).map(M => M[3]);
-  return inviteCodes;
-}
-
-export async function fetchInvite(
-  inviteCodes: string[], client: Client, forceCacheRefresh?: boolean
-): Promise<ConditionErrno | AsceticInvite> {
-  const rawFetchResults: (AsceticInvite | ConditionErrno)[] = [];
-  for (const iCode of inviteCodes) {
-    const maybeCached = await InvitesCache.get(iCode);
-    const needToRefresh = forceCacheRefresh
-      && maybeCached && typeof maybeCached == "object"
-      && (Date.now() - maybeCached.lastUpdateTimestamp > InvitesCache.ExpiryDuration
-        || maybeCached.temporary);
-    if (needToRefresh || maybeCached === null)
-      rawFetchResults.push(
-        await rateLimitSafe(client.fetchInvite(iCode)
-          .then(invite => invite.guild ? AsceticInvite.from(invite) : ConditionErrno.unfetched_invite)
-          .catch(() => (InvitesCache.setUnfetched(iCode), ConditionErrno.unfetched_invite)))
-        .catch(() => ConditionErrno.rate_limit)
-      );
-    else if (maybeCached === InvitesCache.Unfetched)
-      rawFetchResults.push(ConditionErrno.unfetched_invite);
-    else
-      rawFetchResults.push(maybeCached);
-  }
-  const cleanFetchResults = rawFetchResults.filter((it) => typeof it != "number" && !!it.guild);
-  if (cleanFetchResults.length == 0) return rawFetchResults.find((it) => typeof it == "number")
-    ?? ConditionErrno.unfetched_invite;
-  
-  const invitesFetched = (cleanFetchResults as AsceticInvite[]);
-  invitesFetched.forEach(InvitesCache.set);
-  if (
-    invitesFetched.filter(
-      (x, i) => x.guild.id != invitesFetched.at(i - 1)?.guild.id
-    ).length > 0
-  ) {
-    return ConditionErrno.many_invites;
-  }
-  return invitesFetched[0]!;
 }

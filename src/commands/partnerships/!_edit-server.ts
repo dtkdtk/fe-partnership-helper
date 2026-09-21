@@ -1,5 +1,21 @@
-import { addToBlacklist, AsceticInvite, extractInviteCodes, fetchInvite, getBlacklistData, getPartnerData, getServerData, Log, partnerMenuSource, removeFromBlacklist, ServerData, updateServerData_byInvite } from "#core_functional";
-import { BotCache, checkPermission, DgPermissions, emoji, lastDatedVal, resources, tReply } from "#corelib";
+import {
+  addToBlacklist,
+  extractFromInviteOrId,
+  getBlacklistData,
+  getPartnerData,
+  Log,
+  partnerMenuSource,
+  removeFromBlacklist,
+  ServerData
+} from "#core_functional";
+import {
+  BotCache,
+  checkPermission, DgPermissions,
+  emoji,
+  lastDatedVal,
+  resources,
+  tReply
+} from "#corelib";
 import eds from "@eds-fw/framework";
 import { BaseMessageOptions, ButtonStyle, ComponentType, MessageActionRowComponentData, MessageFlags, SelectMenuDefaultValueType, TextInputStyle } from "discord.js";
 import { CoreLog } from "../../logging.js";
@@ -8,50 +24,32 @@ import { CoreLog } from "../../logging.js";
 export default {
   async run(ctx) {
     const rawTarget = ctx.options.getString("target")!.trim();
-    const isGuildId = /^\d+$/.test(rawTarget);
-    let targetGuildId: string, maybeInvite: AsceticInvite | undefined;
-    let partnershipDbData: ServerData | null;
-    if (!isGuildId) {
-      const invite = await fetchInvite(extractInviteCodes(rawTarget), ctx.client);
-      if (typeof invite == "number" || !invite?.guild)
-        return tReply.error(ctx, "Ошибка", "Сервер не распознан.");
-      else {
-        targetGuildId = invite.guild.id;
-        partnershipDbData = await getServerData(targetGuildId);
-        maybeInvite = invite as AsceticInvite;
-        if (partnershipDbData)
-          updateServerData_byInvite(partnershipDbData, invite);
-      }
-    }
-    else {
-      targetGuildId = rawTarget;
-      partnershipDbData = await getServerData(targetGuildId);
-    }
+    const extractedData = await extractFromInviteOrId(ctx.client, rawTarget);
 
-    let warnings = "";
-
-    if (!partnershipDbData && !maybeInvite)
+    if (extractedData == null)
       return tReply.error(ctx, "Ошибка 404", "Сервер не распознан / не найден.");
 
-    if (!partnershipDbData)
+    let warnings = "";
+    const { data, invite } = extractedData;
+    const targetId = data?._id ?? invite?._id!;
+
+    if (!extractedData.data)
       warnings +=
         `\n## ${resources.emoji.warning} **Сервер не найден в базе. Скорее всего, партнёрство с ним не заключалось**`;
     else
       warnings +=
-        `\nДата последнего партнёрства: <t:${Math.floor((partnershipDbData?.timestamp ?? 0) / 1000)}>`;
+        `\nДата последнего партнёрства: <t:${Math.floor((extractedData.data.timestamp ?? 0) / 1000)}>`;
 
     const alwaysServerData: Partial<ServerData> = {
-      _id: targetGuildId,
-      last_members_count: partnershipDbData?.last_members_count
-        ?? maybeInvite?.memberCount!,
-      last_name: partnershipDbData?.last_name
-        ?? maybeInvite?.guild.name!,
+      _id: targetId,
+      last_members_count: data?.last_members_count ?? invite?.memberCount,
+      last_name: data?.last_name ?? invite?.guild.name,
     };
 
-    const partnerIDs = partnershipDbData?.partners
-      ? Object.values(partnershipDbData.partners) : [];
-    const delegateIDs = partnershipDbData?.delegates
-      ? Object.values(partnershipDbData.delegates) : [];
+    const partnerIDs = data?.partners
+      ? Object.values(data.partners) : [];
+    const delegateIDs = data?.delegates
+      ? Object.values(data.delegates) : [];
     const partners = partnerIDs.length
       ? (await Promise.all(partnerIDs.map(getPartnerData)))
         .filter(x => x != null)
@@ -60,12 +58,12 @@ export default {
       ? (await Promise.all(delegateIDs.map(id => eds.sfUser(ctx, id))))
         .filter(x => x != null)
       : [];
-    const prevPartnerID = partnershipDbData
-      ? lastDatedVal(partnershipDbData.partners) : undefined;
+    const prevPartnerID = data
+      ? lastDatedVal(data.partners) : undefined;
     const previousPartner = prevPartnerID
       ? await eds.sfMember(ctx, prevPartnerID) : undefined;
 
-    const mbBlacklistData = await getBlacklistData(targetGuildId);
+    const mbBlacklistData = await getBlacklistData(targetId);
     const mbBlacklistAdmin = await eds.sfUser(ctx, mbBlacklistData?.admin_id);
     const displayBlacklist = mbBlacklistData
       ? `\n# В ЧЁРНОМ СПИСКЕ\n**Причина:** ${mbBlacklistData.reason}\n**Админ:** \`${mbBlacklistAdmin?.username ?? mbBlacklistData.admin_id}\`\n**Дата:** <t:${Math.floor(mbBlacklistData.timestamp / 1000)}:d>`
@@ -84,6 +82,7 @@ export default {
         type: ComponentType.UserSelect,
         customId: "edit-server.set-partner",
         placeholder: "Назначить партнёра",
+        disabled: !data,
         ...(previousPartner ? {
           defaultValues: prevPartnerID
           ? [{
@@ -131,7 +130,7 @@ export default {
               name: "Информация о сервере",
               icon_url: resources.images.info,
             },
-            title: `${alwaysServerData.last_name}\n[${targetGuildId}]`,
+            title: `${alwaysServerData.last_name ?? "<неизвестный>"}\n[${targetId}]`,
             description:
               `Участников: \`${alwaysServerData.last_members_count}\`\nПартнёры: ${displayPartners}\nДелегаты: ${displayDelegates}\n`
               + displayBlacklist
@@ -144,7 +143,7 @@ export default {
     if (!reply) return;
     const msgId = reply.interaction.responseMessageId;
 
-    BotCache.set(`message $$ ${msgId} $$ target_guild`, targetGuildId);
+    BotCache.set(`message $$ ${msgId} $$ target_guild`, targetId);
     BotCache.set(`message $$ ${msgId} $$ target_guild_name`, alwaysServerData.last_name);
   },
 

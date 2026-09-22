@@ -90,7 +90,6 @@ class PartnershipChannelScanner {
 
   private async performScan() {
     if (!this.readonlyMode) {
-      this.fetchOptions.after = this.lastScanMessageId;
       await this.queueMessages();
     }
     else {
@@ -103,27 +102,36 @@ class PartnershipChannelScanner {
       this.msgQueue = this.msgQueue.concat(messages);
     }
 
-    //Коллекция начинается с самых старых сообщений
+    // Коллекция начинается с самых старых сообщений
     for (const msg of this.msgQueue.values()) {
       await this.scanMessage(msg);
     }
   }
 
   private async queueMessages() {
-    let toContinue = true;
-    while (toContinue) {
-      if (!this.fetchOptions.after) toContinue = false;
+    let _maxIterations = 1000;
+    while (_maxIterations--) {
       // Коллекция начинается с новых сообщений 
-      const messages = await this.channel.messages
+      const messagesChunk = await this.channel.messages
         .fetch(this.fetchOptions)
         .catch(() => {});
-      if (!messages?.size) break;
-      this.fetchOptions.after = messages.lastKey();
-      this.msgQueue = this.msgQueue.concat(messages);
+      if (!messagesChunk?.size) break;
+
+      let foundLast = false;
+      for (let i = 0; i < messagesChunk.size; i++) {
+        const V = messagesChunk.at(i)!;
+        if (V.id == this.lastScanMessageId) {
+          foundLast = true;
+          break;
+        }
+        this.msgQueue.set(V.id, V);
+      }
+
+      this.fetchOptions.before = this.msgQueue.lastKey();
+      if (foundLast) break;
       await eds.wait(5_000);
     }
-    this.msgQueue.reverse(); //Порядок: с новых -> со старых
-    this.msgQueue.sort((A, B) => A.createdTimestamp - B.createdTimestamp); //Гарантированно начинаем со старых
+    this.msgQueue.sort((A, B) => A.createdTimestamp - B.createdTimestamp); //Порядок: со старых (гарантированно)
     this.lastScanMessageId = this.msgQueue.last()?.id ?? this.lastScanMessageId;
   }
 

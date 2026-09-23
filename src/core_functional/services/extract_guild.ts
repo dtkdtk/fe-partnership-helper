@@ -1,4 +1,4 @@
-import { rateLimitSafe, tReply } from "#corelib";
+import { rateLimitSafe } from "#corelib";
 import { Client } from "discord.js";
 import { InvitesCache } from "../models/invite_cache.js";
 import { getServerData, updateServerData_byInvite } from "../models/server.js";
@@ -53,7 +53,7 @@ export async function fetchInvite(
 
 
 export async function extractFromInviteOrId(client: Client, input: string):
-  Promise<{ data?: ServerData; invite?: AsceticInvite } | null>
+  Promise<{ id: string; data?: ServerData; invite?: AsceticInvite } | null>
 {
   const isGuildId = /^\d+$/.test(input);
   let targetGuildId: string;
@@ -77,6 +77,7 @@ export async function extractFromInviteOrId(client: Client, input: string):
   }
   if (!targetGuildId) return null;
   return {
+    id: targetGuildId,
     data: partnershipDbData ?? undefined,
     invite: maybeInvite,
   };

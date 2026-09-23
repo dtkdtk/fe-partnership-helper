@@ -1,5 +1,5 @@
 import { AsceticInvite, getBlacklistData, getServerData, Log } from "#core_functional";
-import { ConfigEnv, getDate, MSK } from "#corelib";
+import { ConfigEnv, CoreLog, DB_Misc, getDate, MSK } from "#corelib";
 import { Message } from "discord.js";
 import { botConfig } from "../../bot_config.js";
 import { extractInviteCodes, fetchInvite } from "./extract_guild.js";
@@ -42,6 +42,9 @@ export async function validateConditions(
   if (message.content.startsWith(botConfig.prefix!)) return 0;
   const inviteMatches = extractInviteCodes(message.content);
   if (!inviteMatches?.length) return ConditionErrno.no_invite;
+
+  const miscDbData = await DB_Misc.findOneAsync({ _id: "1" }).catch(CoreLog.unexpectedError);
+  // const bypassDg = miscDbData && miscDbData.bypass_delegates.includes(message.author.id); //TODO
 
   Log.ConditionsCheck.checking(message.id, message.createdTimestamp, message.author.id,
     inviteMatches, options ?? {});

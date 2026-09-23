@@ -16,6 +16,10 @@ export interface MiscDbData {
   is_general_scan_complete?: boolean;
   /** delegates with mandatory `total_partnerships` */
   no_total_delegates: string[];
+  /** сервера, которые игнорируют проверку условий партнёрства */
+  bypass_servers: string[];
+  /** делегаты, которые игнорируют проверку условий партнёрства */
+  bypass_delegates: string[];
 }
 
 export const CommonDatabaseDir = "database";
@@ -85,6 +89,8 @@ DB_Misc.find({ _id: "1" }, {}, (err, data) => {
       no_total_delegates: [],
       last_scanned_message: {},
       last_general_scan_message: {},
+      bypass_servers: [],
+      bypass_delegates: [],
     });
     DB_Misc.compactDatafile();
   }

@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import { DgPermissions } from "./checkAccess_permissions.js";
 
-const BotVersion = "1.0";
+const BotVersion = "1.1";
 
 const _assertFn = (file, cond, additionalMsg) => {
   if (cond) return;

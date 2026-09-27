@@ -10,6 +10,7 @@ import {
   Log,
   markAsLatest,
   partnerMenuSource,
+  StaffCache,
   updateServerData_byInvite,
   validateConditions
 } from "#core_functional";
@@ -34,7 +35,6 @@ export default {
     }
 
     const warnings = [];
-    const minimalMembers = ConfigEnv.REQUIREMENT_MINIMAL_MEMBERS;
     const invite = await validateConditions(ctx, { forceCacheRefresh: true });
     if (invite === 0) return;
     if (typeof invite == "number")
@@ -59,6 +59,7 @@ export default {
     const prevPartnerID = lastDatedVal(serverData.partners);
     updateServerData_byInvite(serverData, invite, ctx.user.id, ctx.createdTimestamp);
     markAsLatest(ctx.channelId, ctx.id);
+    StaffCache.set(ctx.member!);
     const delegateStats = (
       await getDelegateStats(ctx.user.id) ?? await initDelegateStats(ctx.user.id),
       await incrementDelegateStats(ctx.user.id, +MSK())
@@ -120,7 +121,7 @@ ID: \`${invite.guild.id}\`
         ],
       })
       .catch(() => CoreLog.missingPermission("SEND_MESSAGES", { channelId: ctx.channelId }));
-    Log.Listen.messageOk(ctx.id, ctx.author.id);
+    Log.Listen.messageOk(ctx.id, ctx.author.id, ctx.content);
     ctx.react(resources.button_icons.yes).catch(() => {});
     if (!reply) return;
 
@@ -201,7 +202,10 @@ async function _sendError(ctx: eds.CommandContext<"text">, errno: ConditionErrno
   await reply?.delete().catch(() => {});
   const deleteResult = await ctx.delete().catch(() => null);
 
-  if (deleteResult != null) DelegateAlerts.deletePartnership(ctx, errno);
+  if (deleteResult != null) {
+    DelegateAlerts.deletePartnership(ctx, errno);
+    Log.Listen.messageDeleted(ctx.id, ctx.author.id, errno, ctx.content);
+  }
 }
 
 async function deletePreviousText(ctx: CommandContext<"text">, messageId: string) {

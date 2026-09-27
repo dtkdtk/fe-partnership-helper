@@ -52,7 +52,7 @@ export async function onPartnershipDelete(message: Message<true>) {
   if (delegateStats) {
     await decrementDelegateStats(message.author.id, message.createdTimestamp);
   }
-  Log.Listen.externalDelete(message.id, message.author.id);
+  Log.Listen.externalDelete(message.id, message.author.id, message.content);
 }
 
 export function deletePartnership(message: Message) {

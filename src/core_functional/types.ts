@@ -1,5 +1,5 @@
 import type { DateRecord } from "#corelib";
-import type { Invite } from "discord.js";
+import type { GuildMember, Invite } from "discord.js";
 
 
 export interface DelegateStats {
@@ -65,6 +65,25 @@ export namespace AsceticInvite {
     };
   }
 }
+
+export interface AsceticMember {
+  _id: string;
+  username: string;
+  displayName: string;
+  lastUpdateTimestamp: number;
+}
+export namespace AsceticMember {
+  export function from(member: GuildMember): AsceticMember {
+    return {
+      _id: member.id,
+      username: member.user.username,
+      displayName: member.displayName,
+      lastUpdateTimestamp: Date.now(),
+    };
+  }
+}
+export type AsceticNullMember = Pick<AsceticMember, "_id" | "lastUpdateTimestamp">;
+export type AsceticMaybeMember = AsceticMember | AsceticNullMember;
 
 
 

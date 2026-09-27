@@ -2,6 +2,7 @@ import { StatsInterval, statsMenuSource, StatsTarget } from "#core_functional";
 import { BotCache, CoreLog } from "#corelib";
 import eds from "@eds-fw/framework";
 import { User } from "discord.js";
+import { setupStatisticsLeaderboard } from "../../core_functional/statistics/leaderboard.js";
 
 function create_IntervalMode_button(mode: StatsInterval) {
   eds.createButton({ custom_id: "delegation-stats.mode." + mode }, async (ctx) => {
@@ -28,5 +29,7 @@ create_IntervalMode_button(StatsInterval.ONE_WEEK);
 create_IntervalMode_button(StatsInterval.TWO_WEEKS);
 create_IntervalMode_button(StatsInterval.MONTH);
 create_IntervalMode_button(StatsInterval.YEAR);
+setupStatisticsLeaderboard();
+
 
 export const pragmaSkip = true;

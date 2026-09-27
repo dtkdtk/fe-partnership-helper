@@ -1,4 +1,4 @@
-import { onPartnershipDelete, performPartnershipsScan } from "#core_functional";
+import { onPartnershipDelete, performPartnershipsScan, StaffCache } from "#core_functional";
 import { _ErrorActionFn, _initErrorAction, BotCache, ConfigEnv, CoreLog, MSK } from "#corelib";
 import eds from "@eds-fw/framework";
 import { createSlashCommands } from "./slash_commands.js";
@@ -56,6 +56,12 @@ export default function initEventListeners(bot: eds.KnownRuntimeProperties) {
   bot.client.on("error", async (E) => handleError(E, "unexpected"));
 
   _initErrorAction(handleError);
+
+  //Cache updater
+  bot.client.on("messageCreate", async (message) => {
+    if (!message.inGuild() || !message.member) return;
+    StaffCache.update(message.member);
+  });
 
   bot.client.on("messageDelete", async (message) => {
     if (!message.inGuild() || message.guildId != ConfigEnv.GUILD_ID) return;

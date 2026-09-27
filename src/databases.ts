@@ -1,7 +1,7 @@
+import type { AsceticInvite, AsceticMaybeMember, DelegateStats, PartnerData, ServerBlacklistData, ServerData } from "#core_functional";
 import * as nedb from "@seald-io/nedb";
 import { Collection } from "discord.js";
 import NodeCache from "node-cache";
-import type { AsceticInvite, DelegateStats, PartnerData, ServerBlacklistData, ServerData } from "#core_functional";
 import { join as joinPath } from "path";
 const Datastore = nedb.default as unknown as typeof nedb.default.default;
 const AUTO_COMP_INTERVAL = 1 * 60 * 60 * 1000; //1 час
@@ -16,6 +16,10 @@ export interface MiscDbData {
   is_general_scan_complete?: boolean;
   /** delegates with mandatory `total_partnerships` */
   no_total_delegates: string[];
+  /** сервера, которые игнорируют проверку условий партнёрства */
+  bypass_servers: string[];
+  /** делегаты, которые игнорируют проверку условий партнёрства */
+  bypass_delegates: string[];
 }
 
 export const CommonDatabaseDir = "database";
@@ -68,6 +72,14 @@ export const DB_InvitesCache = new Datastore<AsceticInvite | {}>({
 });
 DB_InvitesCache.setAutocompactionInterval(AUTO_COMP_INTERVAL);
 
+export const StaffCache_DBFile = "staff_cache.db";
+export const DB_StaffCache = new Datastore<AsceticMaybeMember>({
+  filename: joinPath(".", CommonDatabaseDir, StaffCache_DBFile),
+  inMemoryOnly: false,
+  autoload: true, 
+});
+DB_StaffCache.setAutocompactionInterval(AUTO_COMP_INTERVAL);
+
 DB_Misc.find({ _id: "1" }, {}, (err, data) => {
   if (err) console.error(err);
   if (!data?.length) {
@@ -77,6 +89,8 @@ DB_Misc.find({ _id: "1" }, {}, (err, data) => {
       no_total_delegates: [],
       last_scanned_message: {},
       last_general_scan_message: {},
+      bypass_servers: [],
+      bypass_delegates: [],
     });
     DB_Misc.compactDatafile();
   }

@@ -4,6 +4,7 @@ import { InvitesCache } from "../models/invite_cache.js";
 import { getServerData, updateServerData_byInvite } from "../models/server.js";
 import { AsceticInvite, ServerData } from "../types.js";
 import { ConditionErrno } from "./check_conditions.js";
+import { Log } from "./log.js";
 
 
 /** Возвращает коды приглашений */
@@ -18,22 +19,34 @@ export async function fetchInvite(
 ): Promise<ConditionErrno | AsceticInvite> {
   const rawFetchResults: (AsceticInvite | ConditionErrno)[] = [];
   for (const iCode of inviteCodes) {
+    Log.InviteFetch.begin(iCode, forceCacheRefresh ?? false);
     const maybeCached = await InvitesCache.get(iCode);
-    const needToRefresh = forceCacheRefresh
-      && maybeCached && typeof maybeCached == "object"
-      && (Date.now() - maybeCached.lastUpdateTimestamp > InvitesCache.ExpiryDuration
-        || maybeCached.temporary);
+    const _refreshForUnfetched = typeof maybeCached == "symbol";
+    const _refreshForObj__ = maybeCached !== null && typeof maybeCached == "object";
+    const _refreshForObjTemporary = _refreshForObj__ && maybeCached.temporary;
+    const _refreshForObjOutdated = _refreshForObj__ && Date.now() - maybeCached.lastUpdateTimestamp > InvitesCache.ExpiryDuration;
+    const needToRefresh = !!forceCacheRefresh
+      && (_refreshForUnfetched || _refreshForObjTemporary || _refreshForObjOutdated);
+    Log.InviteFetch.cacheState(
+      iCode,
+      _refreshForUnfetched ? "cached-unfetched" : _refreshForObj__ ? "cached" : "uncached",
+      needToRefresh,
+      _refreshForObj__ ? _refreshForObjTemporary : null,
+      _refreshForObj__ ? _refreshForObjOutdated : null,
+    );
+    let result: AsceticInvite | ConditionErrno;
     if (needToRefresh || maybeCached === null)
-      rawFetchResults.push(
+      result =
         await rateLimitSafe(client.fetchInvite(iCode)
           .then(invite => invite.guild ? AsceticInvite.from(invite) : ConditionErrno.unfetched_invite)
           .catch(() => (InvitesCache.setUnfetched(iCode), ConditionErrno.unfetched_invite)))
-        .catch(() => ConditionErrno.rate_limit)
-      );
+        .catch(() => ConditionErrno.rate_limit);
     else if (maybeCached === InvitesCache.Unfetched)
-      rawFetchResults.push(ConditionErrno.unfetched_invite);
+      result = ConditionErrno.unfetched_invite
     else
-      rawFetchResults.push(maybeCached);
+      result = maybeCached
+    Log.InviteFetch.result(iCode, typeof result !== "number", result);
+    rawFetchResults.push(result);
   }
   const cleanFetchResults = rawFetchResults.filter((it) => typeof it != "number" && !!it.guild);
   if (cleanFetchResults.length == 0) return rawFetchResults.find((it) => typeof it == "number")

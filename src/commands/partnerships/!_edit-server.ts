@@ -30,8 +30,7 @@ export default {
       return tReply.error(ctx, "Ошибка 404", "Сервер не распознан / не найден.");
 
     let warnings = "";
-    const { data, invite } = extractedData;
-    const targetId = data?._id ?? invite?._id!;
+    const { data, invite, id: targetId } = extractedData;
 
     if (!extractedData.data)
       warnings +=
@@ -132,7 +131,7 @@ export default {
             },
             title: `${alwaysServerData.last_name ?? "<неизвестный>"}\n[${targetId}]`,
             description:
-              `Участников: \`${alwaysServerData.last_members_count}\`\nПартнёры: ${displayPartners}\nДелегаты: ${displayDelegates}\n`
+              `Участников: \`${alwaysServerData.last_members_count ?? "???"}\`\nПартнёры: ${displayPartners}\nДелегаты: ${displayDelegates}\n`
               + displayBlacklist
               + warnings,
           },

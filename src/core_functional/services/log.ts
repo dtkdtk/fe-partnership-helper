@@ -1,5 +1,6 @@
 import { ConfigEnv, logger, MSK } from "#corelib";
 import moment from "moment";
+import { AsceticInvite } from "../types.js";
 import { ConditionErrno } from "./check_conditions.js";
 import { ResultState } from "./general_scan.js";
 
@@ -192,7 +193,7 @@ export namespace Log {
     ) {
       logger.trace(
         { messageId, messageTimestamp, delegateId, inviteCodes, options },
-        "ConditionsCheck: checking invite..."
+        "ConditionsCheck: checking invites..."
       );
     }
     export function wrong(
@@ -204,6 +205,27 @@ export namespace Log {
     }
     export function success(messageId: string, guildId: string) {
       logger.trace({ messageId, guildId }, "ConditionsCheck: successful partnership");
+    }
+  }
+
+  export namespace InviteFetch {
+    export function begin(inviteCode: string, forceCacheRefresh: boolean) {
+      logger.trace({ inviteCode, forceCacheRefresh }, "InviteFetch: fetching invite...");
+    }
+    export function cacheState(
+      inviteCode: string,
+      cachedType: "uncached" | "cached-unfetched" | "cached",
+      needToRefresh: boolean,
+      isTemp: boolean | null,
+      isOutdated: boolean | null
+    ) {
+      logger.trace(
+        { inviteCode, cachedType, needToRefresh, isTemp, isOutdated },
+        "InviteFetch: cache state result"
+      );
+    }
+    export function result(inviteCode: string, success: boolean, value: number | AsceticInvite) {
+      logger.trace({ inviteCode, success, value }, "InviteFetch: complete");
     }
   }
 }

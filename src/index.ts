@@ -7,6 +7,13 @@ import { botConfig } from "./bot_config.js";
 import { CoreLog, resources } from "./corelib.js";
 import initEventListeners from "./events.js";
 
+process.on("unhandledRejection", (err) =>
+  CoreLog.unexpectedError({ err, type: "unhandled rejection" }),
+);
+process.on("uncaughtException", (err) =>
+  CoreLog.unexpectedError({ err, type: "uncaught exception" }),
+);
+
 CoreLog.startup();
 registerFont("./assets/Abibas.ttf", {
   family: "abibas",

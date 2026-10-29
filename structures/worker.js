@@ -17,6 +17,8 @@ class LocalFEWorker {
       this.watchdog = new FEWatchdog(ConfigEnv);
       this.watchdog.start();
     }
+    process.on("unhandledRejection", () => {});
+    process.on("uncaughtException", () => {});
     this.createWorker();
   }
   createWorker() {

@@ -109,7 +109,7 @@ class PartnershipChannelScanner {
   }
 
   private async queueMessages() {
-    let _maxIterations = 20;
+    let _maxIterations = 25;
     while (_maxIterations--) {
       // Коллекция начинается с новых сообщений 
       const messagesChunk = await this.channel.messages
@@ -129,8 +129,10 @@ class PartnershipChannelScanner {
 
       this.fetchOptions.before = this.msgQueue.lastKey();
       if (foundLast) break;
+      Log.Scan.newCycle();
       await eds.wait(5_000);
     }
+    if (_maxIterations <= 0) Log.Scan.emergencyBreak();
     this.msgQueue.sort((A, B) => A.createdTimestamp - B.createdTimestamp); //Порядок: со старых (гарантированно)
     this.lastScanMessageId = this.msgQueue.firstKey() ?? this.lastScanMessageId;
   }

@@ -73,6 +73,9 @@ export namespace Log {
       console.info("Идёт проверка сообщений за период оффлайна."
         + "\n  (!) Пожалуйста, не выключайте бота.");
     }
+    export function emergencyBreak() {
+      logger.error("Scan: EMERGENCY BREAK, too many fetched messages (>2500)");
+    }
     export function newCycle() {
       logger.info("Scan: new cycle (continuing)");
     }

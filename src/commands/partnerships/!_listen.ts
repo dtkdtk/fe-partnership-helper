@@ -161,7 +161,7 @@ eds.createMenu(
       && !checkPermission(delegate, DgPermissions.managePartnerships)
     ) return noAccess(ctx);
   
-    const invite = await validateConditions(partnershipMsg, { justGetInvite: true });
+    const invite = await validateConditions(partnershipMsg, { justGetInvite: true, forceCacheRefresh: true });
     if (typeof invite === "number" || !invite.guild)
       return ctx.quickReply(true, "ERRNO_419", "Приглашение недействительно / не распознано.");
 

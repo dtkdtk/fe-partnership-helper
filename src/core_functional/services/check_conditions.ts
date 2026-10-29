@@ -43,7 +43,7 @@ export async function validateConditions(
   const inviteMatches = extractInviteCodes(message.content);
   if (!inviteMatches?.length) return ConditionErrno.no_invite;
 
-  const miscDbData = await DB_Misc.findOneAsync({ _id: "1" }).catch(CoreLog.unexpectedError);
+  // const miscDbData = await DB_Misc.findOneAsync({ _id: "1" }).catch(CoreLog.unexpectedError);
   // const bypassDg = miscDbData && miscDbData.bypass_delegates.includes(message.author.id); //TODO
 
   Log.ConditionsCheck.checking(message.id, message.createdTimestamp, message.author.id,

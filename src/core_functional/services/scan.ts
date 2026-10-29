@@ -109,7 +109,7 @@ class PartnershipChannelScanner {
   }
 
   private async queueMessages() {
-    let _maxIterations = 1000;
+    let _maxIterations = 20;
     while (_maxIterations--) {
       // Коллекция начинается с новых сообщений 
       const messagesChunk = await this.channel.messages
@@ -132,7 +132,7 @@ class PartnershipChannelScanner {
       await eds.wait(5_000);
     }
     this.msgQueue.sort((A, B) => A.createdTimestamp - B.createdTimestamp); //Порядок: со старых (гарантированно)
-    this.lastScanMessageId = this.msgQueue.last()?.id ?? this.lastScanMessageId;
+    this.lastScanMessageId = this.msgQueue.firstKey() ?? this.lastScanMessageId;
   }
 
   private async setLatestMessage() {
@@ -147,7 +147,7 @@ class PartnershipChannelScanner {
 
   private async scanMessage(msg: Message<true>): Promise<void> {
     this.currentMsgTimestamp = msg.createdTimestamp;
-    const invite = await validateConditions(msg);
+    const invite = await validateConditions(msg, { forceCacheRefresh: true });
     if (invite === ConditionErrno.just_return) {
       await deletePartnership(msg);
       return;
